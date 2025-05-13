@@ -6,6 +6,5 @@ package com.doggybear.factory;
 public enum EntityType {
     GOBLIN,
     PLATFORM,
-    OBSTACLE,
-    COLLECTIBLE
+    LAVA
 }
