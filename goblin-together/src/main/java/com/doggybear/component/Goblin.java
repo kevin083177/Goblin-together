@@ -1,5 +1,7 @@
 package com.doggybear.component;
 
+import static com.almasb.fxgl.dsl.FXGL.getAppWidth;
+
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.physics.PhysicsComponent;
@@ -9,8 +11,8 @@ import javafx.util.Duration;
 public class Goblin extends Component {
     private PhysicsComponent physics;
     
-    private static final double MOVE_SPEED = 150;
-    private static final double JUMP_HEIGHT = 300;
+    private static final double MOVE_SPEED = 300;
+    private static final double JUMP_HEIGHT = 400;
     
     private boolean canJump = true;
     private LocalTimer jumpTimer;
@@ -27,15 +29,8 @@ public class Goblin extends Component {
     
     @Override
     public void onUpdate(double tpf) {
-        // 檢查是否已在地面上
-        if (physics.getVelocityY() == 0) {
-            if (isJumping && jumpTimer.elapsed(jumpTimeout)) {
-                canJump = true;
-                isJumping = false;
-                // System.out.println("跳躍重置");
-            }
-        }
-        
+        // 檢查 Goblin 不會超出邊界
+        keepWithinScreenBounds();
     }
     
     public void moveRight() {
@@ -69,5 +64,26 @@ public class Goblin extends Component {
     
     public void stop() {
         physics.setVelocityX(0);
+    }
+    // 確保玩家不會跑出邊界外
+    private void keepWithinScreenBounds() {
+        double currentX = entity.getX();
+        double entityWidth = entity.getWidth();
+        double screenWidth = getAppWidth();
+        
+        double velocityX = physics.getVelocityX();
+        
+        if (currentX < 0) {
+            entity.setX(0);
+            if (velocityX < 0) {
+                physics.setVelocityX(0);
+            }
+        }
+        else if (currentX + entityWidth > screenWidth) {
+            entity.setX(screenWidth - entityWidth);
+            if (velocityX > 0) {
+                physics.setVelocityX(0);
+            }
+        }
     }
 }
