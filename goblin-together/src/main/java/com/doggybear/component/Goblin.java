@@ -12,7 +12,7 @@ public class Goblin extends Component {
     private PhysicsComponent physics;
     
     private static final double MOVE_SPEED = 300;
-    private static final double JUMP_HEIGHT = 400;
+    private static final double JUMP_HEIGHT = 500;
     
     private boolean canJump = true;
     private LocalTimer jumpTimer;
