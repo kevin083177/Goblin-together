@@ -12,7 +12,7 @@ import com.almasb.fxgl.physics.PhysicsComponent;
 import com.almasb.fxgl.physics.PhysicsWorld;
 import com.doggybear.component.Goblin;
 import com.doggybear.component.Timer;
-import com.doggybear.factory.EntityType;
+import com.doggybear.type.EntityType;
 import com.doggybear.factory.Game;
 import com.doggybear.levels.Level;
 import com.doggybear.levels.LevelManager;

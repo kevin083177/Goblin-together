@@ -1,4 +1,4 @@
-package com.doggybear.factory;
+package com.doggybear.type;
 
 /**
  * 遊戲中所有實體類型的枚舉
