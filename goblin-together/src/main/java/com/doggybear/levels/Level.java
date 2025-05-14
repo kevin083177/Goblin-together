@@ -3,7 +3,8 @@ package com.doggybear.levels;
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
-import com.doggybear.factory.EntityType;
+import com.doggybear.type.EntityType;
+
 import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class Level {
      * 創建初始平台
      */
     public Entity createInitialPlatform() {
-        return createPlatform(0, 600, 1080, 400, Color.BROWN, false, 0, 0);
+        return createPlatform(-10, 600, 1090, 400, Color.BROWN);
     }
 
 
@@ -70,7 +71,7 @@ public class Level {
      * @param width 寬度
      */
     public Entity createPlatform(double x, double y, int width) {
-        return createPlatform(x, y, width, STANDARD_HEIGHT, Color.BROWN, false, 0, 0);
+        return createPlatform(x, y, width, STANDARD_HEIGHT, Color.BROWN);
     }
     
     /**
@@ -81,8 +82,15 @@ public class Level {
      * @param speed 移動速度
      * @param distance 移動距離
      */
-    public Entity createMovingPlatform(double x, double y, int width, double speed, double distance) {
-        return createPlatform(x, y, width, STANDARD_HEIGHT, Color.BLUE, true, speed, distance);
+    public Level createMovingPlatform(double x, double y, int width, int height, double speed, double distance) {
+        SpawnData data = new SpawnData(x, y)
+            .put("width", width)
+            .put("height", height)
+            .put("moving", true)
+            .put("speed", speed)
+            .put("distance", distance);
+        FXGL.spawn("platform", data);
+        return this;
     }
     
     /**
@@ -94,24 +102,14 @@ public class Level {
      * @param width 寬度
      * @param height 高度
      * @param color 顏色
-     * @param isMoving 是否移動
-     * @param moveSpeed 移動速度
-     * @param moveDistance 移動距離
      */
-    public Entity createPlatform(double x, double y, int width, int height, Color color, 
-                                 boolean isMoving, double moveSpeed, double moveDistance) {
+    public Entity createPlatform(double x, double y, int width, int height, Color color) {
         SpawnData data = new SpawnData(x, y)
                 .put("width", width)
                 .put("height", height);
         
         if (color != null) {
             data.put("color", color);
-        }
-        
-        if (isMoving) {
-            data.put("moving", true);
-            data.put("moveSpeed", moveSpeed);
-            data.put("moveDistance", moveDistance);
         }
         
         Entity platform = FXGL.spawn("platform", data);
