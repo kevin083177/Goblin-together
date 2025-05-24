@@ -12,6 +12,7 @@ import com.almasb.fxgl.physics.box2d.dynamics.BodyType;
 import com.almasb.fxgl.physics.box2d.dynamics.FixtureDef;
 import com.almasb.fxgl.texture.Texture;
 import com.doggybear.component.Goblin;
+import com.doggybear.component.Goblin2;
 import com.doggybear.component.Lava;
 import com.doggybear.component.Platform;
 import com.doggybear.type.EntityType;
@@ -59,6 +60,39 @@ public class Game implements EntityFactory {
                 .build();
     }
     
+    @Spawns("goblin2")
+    public Entity newGoblin2(SpawnData data) {
+        PhysicsComponent physics = new PhysicsComponent();
+        
+        FixtureDef fd = new FixtureDef();
+        fd.setFriction(0.0f); // 摩擦力
+        fd.setDensity(0.5f); // 密度
+        fd.setRestitution(0.0f); // 彈性
+        
+        physics.setFixtureDef(fd);
+        physics.setBodyType(BodyType.DYNAMIC);
+        
+        physics.setOnPhysicsInitialized(() -> {
+            physics.getBody().setFixedRotation(true);
+        });
+
+        // 使用不同顏色的哥布林圖像或者套用顏色濾鏡
+        Texture texture = FXGL.getAssetLoader().loadTexture("goblin.png");
+        texture.setFitWidth(50);
+        texture.setFitHeight(50);
+        // 可以設置一個不同的濾鏡來區分
+        texture.setEffect(new javafx.scene.effect.ColorAdjust(0.5, 0.5, 0.0, 0.0)); // 調整色調和飽和度
+
+        return entityBuilder(data)
+                .type(EntityType.GOBLIN2)
+                .bbox(new HitBox(BoundingShape.box(50, 50)))
+                .view(texture)
+                .with(physics)
+                .with(new Goblin2())
+                .with(new CollidableComponent(true))
+                .build();
+    }
+
     @Spawns("platform")
     public Entity newPlatform(SpawnData data) {
         PhysicsComponent physics = new PhysicsComponent();

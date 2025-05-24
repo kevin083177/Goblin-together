@@ -5,6 +5,7 @@ package com.doggybear.type;
  */
 public enum EntityType {
     GOBLIN,
+    GOBLIN2,
     PLATFORM,
     LAVA
 }
