@@ -20,6 +20,9 @@ public class Level {
     private int initialLavaHeight = 120;
     private int goblinStartX = 500;
     private int goblinStartY = 550;
+    // 新增第二個玩家的起始位置
+    private int goblin2StartX = 600;
+    private int goblin2StartY = 550;
     
     private List<Entity> platforms = new ArrayList<>();
 
@@ -53,6 +56,17 @@ public class Level {
     public Level setGoblinStart(int x, int y) {
         this.goblinStartX = x;
         this.goblinStartY = y;
+        return this;
+    }
+    
+    /**
+     * 設置第二個哥布林起始位置
+     * @param x X 座標
+     * @param y Y 座標
+     */
+    public Level setGoblin2Start(int x, int y) {
+        this.goblin2StartX = x;
+        this.goblin2StartY = y;
         return this;
     }
     
@@ -142,6 +156,20 @@ public class Level {
      */
     public int getGoblinStartY() {
         return goblinStartY;
+    }
+    
+    /**
+     * 獲取第二個哥布林起始 X 座標
+     */
+    public int getGoblin2StartX() {
+        return goblin2StartX;
+    }
+    
+    /**
+     * 獲取第二個哥布林起始 Y 座標
+     */
+    public int getGoblin2StartY() {
+        return goblin2StartY;
     }
     
     /**
