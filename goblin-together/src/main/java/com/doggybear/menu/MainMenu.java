@@ -40,9 +40,14 @@ public class MainMenu extends FXGLMenu {
         title.setFill(Color.WHITE);
         title.setStyle("-fx-font-size: 48px; -fx-font-weight: bold;");
         
-        // 創建三個按鈕
-        var btnLocalCoop = createButton("本地合作");
-        var btnOnlineCoop = createButton("連機合作");
+        // 創建子標題，表明支持兩人遊玩
+        var subtitle = new Text("雙人本地合作遊戲");
+        subtitle.setFill(Color.LIGHTGRAY);
+        subtitle.setStyle("-fx-font-size: 24px;");
+        
+        // 創建按鈕
+        var btnLocalCoop = createButton("開始遊戲");
+        var btnControls = createButton("操作說明");
         var btnExit = createButton("退出");
         
         // 設置按鈕事件
@@ -50,10 +55,9 @@ public class MainMenu extends FXGLMenu {
             fireNewGame();
         });
         
-        btnOnlineCoop.setOnAction(e -> {
-            // 這裡處理連機合作的邏輯
-            // 目前只是一個示例，您可以添加自己的實現
-            System.out.println("連機合作功能暫未實現");
+        btnControls.setOnAction(e -> {
+            // 顯示控制說明
+            showControls();
         });
         
         btnExit.setOnAction(e -> {
@@ -61,7 +65,7 @@ public class MainMenu extends FXGLMenu {
         });
         
         // 添加按鈕到面板
-        buttonPanel.getChildren().addAll(btnLocalCoop, btnOnlineCoop, btnExit);
+        buttonPanel.getChildren().addAll(btnLocalCoop, btnControls, btnExit);
         
         // 創建佈局
         var layout = new HBox(50);
@@ -70,7 +74,7 @@ public class MainMenu extends FXGLMenu {
         // 創建左側的容器（包含圖片和標題）
         var leftPane = new VBox(20);
         leftPane.setAlignment(Pos.CENTER);
-        leftPane.getChildren().addAll(title, coverPlaceholder);
+        leftPane.getChildren().addAll(title, subtitle, coverPlaceholder);
         
         // 將左側容器和按鈕面板添加到水平佈局中
         layout.getChildren().addAll(leftPane, buttonPanel);
@@ -79,6 +83,44 @@ public class MainMenu extends FXGLMenu {
         root.getChildren().add(layout);
         
         getContentRoot().getChildren().add(root);
+    }
+    
+    private void showControls() {
+        var controlsPane = new StackPane();
+        
+        var bg = new Rectangle(500, 300, Color.color(0.2, 0.2, 0.2, 0.9));
+        bg.setArcWidth(20);
+        bg.setArcHeight(20);
+        
+        var content = new VBox(20);
+        content.setAlignment(Pos.CENTER);
+        
+        var title = new Text("操作說明");
+        title.setFill(Color.WHITE);
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        
+        var player1Controls = new Text("玩家 1: 使用 A/D 鍵移動，空白鍵跳躍");
+        player1Controls.setFill(Color.WHITE);
+        
+        var player2Controls = new Text("玩家 2: 使用方向鍵移動，Enter鍵跳躍");
+        player2Controls.setFill(Color.WHITE);
+        
+        var objective = new Text("目標: 逃避不斷上升的岩漿，存活越久越好！");
+        objective.setFill(Color.WHITE);
+        
+        var closeBtn = createButton("關閉");
+        closeBtn.setPrefWidth(100);
+        closeBtn.setOnAction(e -> {
+            getContentRoot().getChildren().remove(controlsPane);
+        });
+        
+        content.getChildren().addAll(title, player1Controls, player2Controls, objective, closeBtn);
+        
+        controlsPane.getChildren().addAll(bg, content);
+        controlsPane.setTranslateX(getAppWidth() / 2 - 250);
+        controlsPane.setTranslateY(getAppHeight() / 2 - 150);
+        
+        getContentRoot().getChildren().add(controlsPane);
     }
     
     private Button createButton(String text) {
