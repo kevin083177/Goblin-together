@@ -11,10 +11,15 @@ import com.almasb.fxgl.physics.CollisionHandler;
 import com.almasb.fxgl.physics.PhysicsComponent;
 import com.almasb.fxgl.physics.PhysicsWorld;
 import com.doggybear.component.Goblin;
-import com.doggybear.component.Goblin2;
 import com.doggybear.component.Timer;
 import com.doggybear.type.EntityType;
-import com.doggybear.factory.Game;
+
+import com.doggybear.factory.GoblinFactory;
+import com.doggybear.factory.FactoryManager;
+import com.doggybear.factory.PlatformFactory;
+import com.doggybear.factory.LavaFactory;
+import com.doggybear.factory.SpikeFactory;
+
 import com.doggybear.levels.Level;
 import com.doggybear.levels.LevelManager;
 import com.doggybear.menu.MainMenu;
@@ -68,7 +73,7 @@ public class Main extends GameApplication {
         isGameOver = false;
         timePassed = 0;
         
-        getGameWorld().addEntityFactory(new Game());
+        FactoryManager.addAllFactories(getGameWorld());
         
         getGameScene().setBackgroundColor(Color.LIGHTBLUE);
         
@@ -99,7 +104,7 @@ public class Main extends GameApplication {
         updateViewport();
     }
 
-    // 動態更新視角，使兩個玩家都在畫面中
+    // 更新視角
     private void updateViewport() {
         if (goblin == null || goblin2 == null) return;
         
@@ -107,14 +112,24 @@ public class Main extends GameApplication {
         double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25; // 加上一半的寬度(50/2)
         double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25; // 加上一半的高度(50/2)
         
-        // 使用固定視角位置，而不是綁定到實體
-        getGameScene().getViewport().setX(centerX - getAppWidth() / 2);
-        getGameScene().getViewport().setY(centerY - getAppHeight() / 2);
+        // 計算目標視角位置（讓中心點位於畫面中央）
+        double targetViewX = centerX - getAppWidth() / 2;
+        double targetViewY = centerY - getAppHeight() / 2;
+        
+        targetViewX = 0; // 固定X軸位置
+        
+        double minViewY = -WORLD_HEIGHT; // 上邊界
+        double maxViewY = 0; // 下邊界
+        
+        targetViewY = Math.max(minViewY, Math.min(targetViewY, maxViewY));
+        
+        getGameScene().getViewport().setX(targetViewX);
+        getGameScene().getViewport().setY(targetViewY);
     }
 
     @Override
     protected void initInput() {
-        // 第一個玩家控制 - WASD 和空格跳躍
+        // 第一个玩家控制 - WASD 和空格跳躍
         getInput().addAction(new UserAction("向右移動") {
             @Override
             protected void onAction() {
@@ -146,35 +161,35 @@ public class Main extends GameApplication {
             }
         }, KeyCode.SPACE);
 
-        // 第二個玩家控制 - 方向鍵和Enter跳躍
+        // 第二个玩家控制 - 方向鍵和Enter跳躍
         getInput().addAction(new UserAction("玩家2向右移動") {
             @Override
             protected void onAction() {
-                goblin2.getComponent(Goblin2.class).moveRight();
+                goblin2.getComponent(Goblin.class).moveRight();
             }
 
             @Override
             protected void onActionEnd() {
-                goblin2.getComponent(Goblin2.class).stop();
+                goblin2.getComponent(Goblin.class).stop();
             }
         }, KeyCode.RIGHT);
 
         getInput().addAction(new UserAction("玩家2向左移動") {
             @Override
             protected void onAction() {
-                goblin2.getComponent(Goblin2.class).moveLeft();
+                goblin2.getComponent(Goblin.class).moveLeft();
             }
 
             @Override
             protected void onActionEnd() {
-                goblin2.getComponent(Goblin2.class).stop();
+                goblin2.getComponent(Goblin.class).stop();
             }
         }, KeyCode.LEFT);
 
         getInput().addAction(new UserAction("玩家2跳躍") {
             @Override
             protected void onActionBegin() {
-                goblin2.getComponent(Goblin2.class).jump();
+                goblin2.getComponent(Goblin.class).jump();
             }
         }, KeyCode.ENTER);
     }
@@ -183,7 +198,7 @@ public class Main extends GameApplication {
     protected void initPhysics() {
         PhysicsWorld physicsWorld = getPhysicsWorld();
         
-        // 第一個玩家的碰撞處理
+        // 第一个玩家的碰撞处理
         physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.PLATFORM) {
             @Override
             protected void onCollisionBegin(Entity goblin, Entity platform) {
@@ -198,17 +213,32 @@ public class Main extends GameApplication {
             }
         });
         
-        // 第二個玩家的碰撞處理
+        // 第二个玩家的碰撞处理
         physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.PLATFORM) {
             @Override
             protected void onCollisionBegin(Entity goblin2, Entity platform) {
-                goblin2.getComponent(Goblin2.class).onGroundCollision();
+                goblin2.getComponent(Goblin.class).onGroundCollision();
             }
         });
 
         physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.LAVA) {
             @Override
             protected void onCollisionBegin(Entity goblin2, Entity lava) {
+                showGameOver();
+            }
+        });
+        
+        // 刺的碰撞处理
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.SPIKE) {
+            @Override
+            protected void onCollisionBegin(Entity goblin, Entity spike) {
+                showGameOver();
+            }
+        });
+        
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.SPIKE) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity spike) {
                 showGameOver();
             }
         });
@@ -223,7 +253,7 @@ public class Main extends GameApplication {
                 goblin.getComponent(PhysicsComponent.class).setVelocityY(0);
             }
             if (goblin2 != null && goblin2.isActive()) {
-                goblin2.getComponent(Goblin2.class).stop();
+                goblin2.getComponent(Goblin.class).stop();
                 goblin2.getComponent(PhysicsComponent.class).setVelocityY(0);
             }
             return;

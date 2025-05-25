@@ -74,7 +74,7 @@ public class Level {
      * 創建初始平台
      */
     public Entity createInitialPlatform() {
-        return createPlatform(-10, 600, 1090, 400, Color.BROWN);
+        return createPlatform(-100, 600, 1200, 400, Color.BROWN);
     }
 
 
@@ -132,6 +132,66 @@ public class Level {
     }
   
     /**
+     * 在平台上创建刺
+     * @param platformX 平台的X坐标
+     * @param platformY 平台的Y坐标
+     * @param platformWidth 平台宽度
+     * @param spikeWidth 单个刺的宽度
+     * @param spikeHeight 刺的高度
+     * @param spikeCount 刺的数量
+     */
+    public Level createSpikesOnPlatform(double platformX, double platformY, int platformWidth, 
+                                       int spikeWidth, int spikeHeight, int spikeCount) {
+        // 计算刺之间的间距
+        double spacing = (double) platformWidth / spikeCount;
+        
+        for (int i = 0; i < spikeCount; i++) {
+            double spikeX = platformX + (spacing * i) + (spacing - spikeWidth) / 2;
+            double spikeY = platformY - spikeHeight; // 刺在平台上方
+            
+            createSpike(spikeX, spikeY, spikeWidth, spikeHeight);
+        }
+        
+        return this;
+    }
+
+    /**
+     * 创建单个刺
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     */
+    public Entity createSpike(double x, double y, int width, int height) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height);
+        
+        Entity spike = FXGL.spawn("spike", data);
+        platforms.add(spike); // 将刺也加入到实体列表中，方便清理
+        return spike;
+    }
+
+    /**
+     * 创建带颜色的刺
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     * @param color 颜色
+     */
+    public Entity createSpike(double x, double y, int width, int height, Color color) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("color", color);
+        
+        Entity spike = FXGL.spawn("spike", data);
+        platforms.add(spike);
+        return spike;
+    }
+
+    /**
      * 清除所有平台
      */
     public void clearPlatforms() {
@@ -142,6 +202,9 @@ public class Level {
         
         FXGL.getGameWorld().getEntitiesByType(EntityType.PLATFORM)
              .forEach(Entity::removeFromWorld);
+
+        FXGL.getGameWorld().getEntitiesByType(EntityType.SPIKE)
+         .forEach(Entity::removeFromWorld);
     }
     
     /**
