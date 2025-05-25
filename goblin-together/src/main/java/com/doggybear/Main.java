@@ -14,11 +14,7 @@ import com.doggybear.component.Goblin;
 import com.doggybear.component.Timer;
 import com.doggybear.type.EntityType;
 
-import com.doggybear.factory.GoblinFactory;
 import com.doggybear.factory.FactoryManager;
-import com.doggybear.factory.PlatformFactory;
-import com.doggybear.factory.LavaFactory;
-import com.doggybear.factory.SpikeFactory;
 
 import com.doggybear.levels.Level;
 import com.doggybear.levels.LevelManager;
@@ -240,6 +236,43 @@ public class Main extends GameApplication {
             @Override
             protected void onCollisionBegin(Entity goblin2, Entity spike) {
                 showGameOver();
+            }
+        });
+
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.ARROW) {
+            @Override
+            protected void onCollisionBegin(Entity goblin, Entity arrow) {
+                // 移除弓箭
+                arrow.removeFromWorld();
+                // 触发游戏结束
+                showGameOver();
+            }
+        });
+        
+        // 第二个玩家被弓箭击中
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.ARROW) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity arrow) {
+                // 移除弓箭
+                arrow.removeFromWorld();
+                // 触发游戏结束
+                showGameOver();
+            }
+        });
+        
+        // 弓箭击中平台时消失
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.ARROW, EntityType.PLATFORM) {
+            @Override
+            protected void onCollisionBegin(Entity arrow, Entity platform) {
+                arrow.removeFromWorld();
+            }
+        });
+        
+        // 弓箭击中刺时消失（可选）
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.ARROW, EntityType.SPIKE) {
+            @Override
+            protected void onCollisionBegin(Entity arrow, Entity spike) {
+                arrow.removeFromWorld();
             }
         });
     }

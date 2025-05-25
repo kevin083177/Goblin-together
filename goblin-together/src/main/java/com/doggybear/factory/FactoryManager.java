@@ -10,6 +10,8 @@ public class FactoryManager {
         gameWorld.addEntityFactory(new PlatformFactory());
         gameWorld.addEntityFactory(new LavaFactory());
         gameWorld.addEntityFactory(new SpikeFactory());
+        gameWorld.addEntityFactory(new ArrowLauncherFactory());
+        gameWorld.addEntityFactory(new RopeFactory());
     }
     
     public static EntityFactory[] getAllFactories() {
@@ -17,7 +19,10 @@ public class FactoryManager {
             new GoblinFactory(),
             new PlatformFactory(),
             new LavaFactory(),
-            new SpikeFactory()
+            new SpikeFactory(),
+            new ArrowLauncherFactory(),
+            new RopeFactory(),
+            
         };
     }
 }

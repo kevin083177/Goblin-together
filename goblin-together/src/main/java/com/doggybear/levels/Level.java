@@ -192,7 +192,67 @@ public class Level {
     }
 
     /**
-     * 清除所有平台
+     * 创建弓箭发射器
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     * @param direction 发射方向（"left", "right", "up", "down"）
+     */
+    public Entity createArrowLauncher(double x, double y, int width, int height, String direction) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("direction", direction);
+        
+        Entity launcher = FXGL.spawn("launcher", data);
+        platforms.add(launcher); // 将发射器也加入到实体列表中，方便清理
+        return launcher;
+    }
+
+    /**
+     * 创建自定义发射器
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度  
+     * @param height 高度
+     * @param direction 发射方向
+     * @param fireRate 发射频率（每秒几次）
+     * @param arrowSpeed 弓箭速度
+     * @param color 颜色
+     */
+    public Entity createCustomArrowLauncher(double x, double y, int width, int height, 
+                                        String direction, double fireRate, 
+                                        double arrowSpeed, Color color) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("direction", direction)
+                .put("fireRate", fireRate)
+                .put("arrowSpeed", arrowSpeed)
+                .put("color", color);
+        
+        Entity launcher = FXGL.spawn("launcher", data);
+        platforms.add(launcher);
+        return launcher;
+    }
+
+    /**
+     * 創建連接兩個玩家的硬约束繩子
+     * @param maxLength 繩子最大長度
+     */
+    public Entity createPlayerRope(double maxLength) {
+        SpawnData data = new SpawnData(0, 0) // 繩子位置不重要，它會自動跟隨玩家
+                .put("maxLength", maxLength);
+        
+        Entity rope = FXGL.spawn("rope", data);
+        platforms.add(rope); // 將繩子加入實體列表，方便清理
+        return rope;
+    }
+
+    // 修改清理方法，包含弓箭和发射器的清理
+    /**
+     * 清除所有平台、刺、弓箭和发射器
      */
     public void clearPlatforms() {
         for (Entity platform : platforms) {
@@ -200,10 +260,16 @@ public class Level {
         }
         platforms.clear();
         
+        // 清理所有类型的实体
         FXGL.getGameWorld().getEntitiesByType(EntityType.PLATFORM)
-             .forEach(Entity::removeFromWorld);
-
+            .forEach(Entity::removeFromWorld);
         FXGL.getGameWorld().getEntitiesByType(EntityType.SPIKE)
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.LAUNCHER)
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.ARROW)
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.ROPE)
          .forEach(Entity::removeFromWorld);
     }
     
