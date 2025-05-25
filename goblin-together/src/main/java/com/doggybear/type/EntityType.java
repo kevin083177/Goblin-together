@@ -7,5 +7,6 @@ public enum EntityType {
     GOBLIN,
     GOBLIN2,
     PLATFORM,
-    LAVA
+    LAVA,
+    SPIKE
 }

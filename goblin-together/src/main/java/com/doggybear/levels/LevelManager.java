@@ -1,5 +1,7 @@
 package com.doggybear.levels;
 
+import javafx.scene.paint.Color;
+
 public class LevelManager {
     
     public static Level createLevel() {
@@ -25,7 +27,8 @@ public class LevelManager {
         level.createPlatform(600, 200, 150);
         
         level.createMovingPlatform(400, 100, 100,20, 100, 200);
-        
+
+        level.createSpikesOnPlatform(450, 500, 150, 20, 25, 2);
         return level;
     }
 }
