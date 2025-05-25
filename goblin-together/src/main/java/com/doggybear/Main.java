@@ -13,7 +13,9 @@ import com.almasb.fxgl.physics.PhysicsWorld;
 import com.doggybear.component.Goblin;
 import com.doggybear.component.Timer;
 import com.doggybear.type.EntityType;
-import com.doggybear.factory.Game;
+
+import com.doggybear.factory.FactoryManager;
+
 import com.doggybear.levels.Level;
 import com.doggybear.levels.LevelManager;
 import com.doggybear.menu.MainMenu;
@@ -48,6 +50,7 @@ public class Main extends GameApplication {
     }
 
     private Entity goblin;
+    private Entity goblin2; // 新增第二個哥布林
     private Timer timer;
 
     private Entity lava;
@@ -66,13 +69,17 @@ public class Main extends GameApplication {
         isGameOver = false;
         timePassed = 0;
         
-        getGameWorld().addEntityFactory(new Game());
+        FactoryManager.addAllFactories(getGameWorld());
         
         getGameScene().setBackgroundColor(Color.LIGHTBLUE);
         
         level = LevelManager.createLevel();
         
+        // 生成第一個哥布林
         goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
+        
+        // 生成第二個哥布林
+        goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
         
         timer = new Timer();
         goblin.addComponent(timer);
@@ -86,26 +93,39 @@ public class Main extends GameApplication {
         
         getPhysicsWorld().setGravity(0, 1000);
         
+        // 修改視角，確保兩個玩家都在畫面中
         getGameScene().getViewport().setBounds(0, -WORLD_HEIGHT, getAppWidth(), WORLD_HEIGHT + getAppHeight());
-        getGameScene().getViewport().bindToEntity(goblin, getAppWidth() / 2, getAppHeight() / 2);
         
-        // updateLevelUI();
+        // 動態調整視角以確保兩個玩家都在畫面中
+        updateViewport();
     }
-    // 顯示關卡名稱
-    // private void updateLevelUI() {
-    //     Text levelText = getGameScene().getUINodes().stream()
-    //             .filter(node -> node instanceof Text && ((Text) node).getText().startsWith("关卡:"))
-    //             .map(node -> (Text) node)
-    //             .findFirst()
-    //             .orElse(null);
+
+    // 更新視角
+    private void updateViewport() {
+        if (goblin == null || goblin2 == null) return;
         
-    //     if (levelText != null && level != null) {
-    //         levelText.setText("关卡: " + level.getName());
-    //     }
-    // }
+        // 計算兩個哥布林的中心點作為視角中心
+        double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25; // 加上一半的寬度(50/2)
+        double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25; // 加上一半的高度(50/2)
+        
+        // 計算目標視角位置（讓中心點位於畫面中央）
+        double targetViewX = centerX - getAppWidth() / 2;
+        double targetViewY = centerY - getAppHeight() / 2;
+        
+        targetViewX = 0; // 固定X軸位置
+        
+        double minViewY = -WORLD_HEIGHT; // 上邊界
+        double maxViewY = 0; // 下邊界
+        
+        targetViewY = Math.max(minViewY, Math.min(targetViewY, maxViewY));
+        
+        getGameScene().getViewport().setX(targetViewX);
+        getGameScene().getViewport().setY(targetViewY);
+    }
 
     @Override
     protected void initInput() {
+        // 第一个玩家控制 - WASD 和空格跳躍
         getInput().addAction(new UserAction("向右移動") {
             @Override
             protected void onAction() {
@@ -136,17 +156,48 @@ public class Main extends GameApplication {
                 goblin.getComponent(Goblin.class).jump();
             }
         }, KeyCode.SPACE);
+
+        // 第二个玩家控制 - 方向鍵和Enter跳躍
+        getInput().addAction(new UserAction("玩家2向右移動") {
+            @Override
+            protected void onAction() {
+                goblin2.getComponent(Goblin.class).moveRight();
+            }
+
+            @Override
+            protected void onActionEnd() {
+                goblin2.getComponent(Goblin.class).stop();
+            }
+        }, KeyCode.RIGHT);
+
+        getInput().addAction(new UserAction("玩家2向左移動") {
+            @Override
+            protected void onAction() {
+                goblin2.getComponent(Goblin.class).moveLeft();
+            }
+
+            @Override
+            protected void onActionEnd() {
+                goblin2.getComponent(Goblin.class).stop();
+            }
+        }, KeyCode.LEFT);
+
+        getInput().addAction(new UserAction("玩家2跳躍") {
+            @Override
+            protected void onActionBegin() {
+                goblin2.getComponent(Goblin.class).jump();
+            }
+        }, KeyCode.ENTER);
     }
     
     @Override
     protected void initPhysics() {
         PhysicsWorld physicsWorld = getPhysicsWorld();
         
+        // 第一个玩家的碰撞处理
         physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.PLATFORM) {
             @Override
             protected void onCollisionBegin(Entity goblin, Entity platform) {
-                // System.out.println("落地");
-                
                 goblin.getComponent(Goblin.class).onGroundCollision();
             }
         });
@@ -155,6 +206,73 @@ public class Main extends GameApplication {
             @Override
             protected void onCollisionBegin(Entity goblin, Entity lava) {
                 showGameOver();
+            }
+        });
+        
+        // 第二个玩家的碰撞处理
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.PLATFORM) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity platform) {
+                goblin2.getComponent(Goblin.class).onGroundCollision();
+            }
+        });
+
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.LAVA) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity lava) {
+                showGameOver();
+            }
+        });
+        
+        // 刺的碰撞处理
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.SPIKE) {
+            @Override
+            protected void onCollisionBegin(Entity goblin, Entity spike) {
+                showGameOver();
+            }
+        });
+        
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.SPIKE) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity spike) {
+                showGameOver();
+            }
+        });
+
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.ARROW) {
+            @Override
+            protected void onCollisionBegin(Entity goblin, Entity arrow) {
+                // 移除弓箭
+                arrow.removeFromWorld();
+                // 触发游戏结束
+                showGameOver();
+            }
+        });
+        
+        // 第二个玩家被弓箭击中
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.ARROW) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity arrow) {
+                // 移除弓箭
+                arrow.removeFromWorld();
+                // 触发游戏结束
+                showGameOver();
+            }
+        });
+        
+        // 弓箭击中平台时消失
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.ARROW, EntityType.PLATFORM) {
+            @Override
+            protected void onCollisionBegin(Entity arrow, Entity platform) {
+                arrow.removeFromWorld();
+            }
+        });
+        
+        // 弓箭击中刺时消失（可选）
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.ARROW, EntityType.SPIKE) {
+            @Override
+            protected void onCollisionBegin(Entity arrow, Entity spike) {
+                arrow.removeFromWorld();
             }
         });
     }
@@ -166,6 +284,10 @@ public class Main extends GameApplication {
             if (goblin != null && goblin.isActive()) {
                 goblin.getComponent(Goblin.class).stop();
                 goblin.getComponent(PhysicsComponent.class).setVelocityY(0);
+            }
+            if (goblin2 != null && goblin2.isActive()) {
+                goblin2.getComponent(Goblin.class).stop();
+                goblin2.getComponent(PhysicsComponent.class).setVelocityY(0);
             }
             return;
         }
@@ -186,9 +308,14 @@ public class Main extends GameApplication {
             timePassed = 0;
         }
         
-        if (goblin.getY() + goblin.getHeight() > lavaY - lavaHeight) {
+        // 檢查兩位玩家是否都掉入岩漿
+        if ((goblin.getY() + goblin.getHeight() > lavaY - lavaHeight) || 
+            (goblin2.getY() + goblin2.getHeight() > lavaY - lavaHeight)) {
             showGameOver();
         }
+        
+        // 更新視角位置，使兩個玩家都保持在畫面中
+        updateViewport();
     }
 
     private void showGameOver() {
@@ -242,25 +369,23 @@ public class Main extends GameApplication {
         getGameScene().addUINodes(overlay, modalPane);
     }
 
-    // @Override
-    // 修改成進入遊戲後顯示 Modal 或是更好的方法
-    // protected void initUI() {
-    //     Text title = new Text("Goblin Together");
-    //     title.setTranslateX(10);
-    //     title.setTranslateY(30);
+    @Override
+    protected void initUI() {
+        Text title = new Text("Goblin Together");
+        title.setTranslateX(10);
+        title.setTranslateY(30);
         
-    //     Text helpText = new Text("使用 A/D 移動，空白鍵跳躍");
-    //     helpText.setTranslateX(10);
-    //     helpText.setTranslateY(60);
+        Text helpText = new Text("玩家1: A/D 移動，空白鍵跳躍 | 玩家2: 方向鍵移動，Enter跳躍");
+        helpText.setTranslateX(10);
+        helpText.setTranslateY(60);
         
-    //     Text levelText = new Text("關卡: " + (level != null ? level.getName() : ""));
-    //     levelText.setTranslateX(10);
-    //     levelText.setTranslateY(90);
+        Text levelText = new Text("關卡: " + (level != null ? level.getName() : ""));
+        levelText.setTranslateX(10);
+        levelText.setTranslateY(90);
         
-    //     getGameScene().addUINodes(title, helpText, levelText);
-    // }
+        getGameScene().addUINodes(title, helpText, levelText);
+    }
 
-    
     public static void main(String[] args) {
         launch(args);
     }

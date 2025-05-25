@@ -20,6 +20,9 @@ public class Level {
     private int initialLavaHeight = 120;
     private int goblinStartX = 500;
     private int goblinStartY = 550;
+    // 新增第二個玩家的起始位置
+    private int goblin2StartX = 600;
+    private int goblin2StartY = 550;
     
     private List<Entity> platforms = new ArrayList<>();
 
@@ -57,10 +60,21 @@ public class Level {
     }
     
     /**
+     * 設置第二個哥布林起始位置
+     * @param x X 座標
+     * @param y Y 座標
+     */
+    public Level setGoblin2Start(int x, int y) {
+        this.goblin2StartX = x;
+        this.goblin2StartY = y;
+        return this;
+    }
+    
+    /**
      * 創建初始平台
      */
     public Entity createInitialPlatform() {
-        return createPlatform(-10, 600, 1090, 400, Color.BROWN);
+        return createPlatform(-100, 600, 1200, 400, Color.BROWN);
     }
 
 
@@ -118,7 +132,127 @@ public class Level {
     }
   
     /**
-     * 清除所有平台
+     * 在平台上创建刺
+     * @param platformX 平台的X坐标
+     * @param platformY 平台的Y坐标
+     * @param platformWidth 平台宽度
+     * @param spikeWidth 单个刺的宽度
+     * @param spikeHeight 刺的高度
+     * @param spikeCount 刺的数量
+     */
+    public Level createSpikesOnPlatform(double platformX, double platformY, int platformWidth, 
+                                       int spikeWidth, int spikeHeight, int spikeCount) {
+        // 计算刺之间的间距
+        double spacing = (double) platformWidth / spikeCount;
+        
+        for (int i = 0; i < spikeCount; i++) {
+            double spikeX = platformX + (spacing * i) + (spacing - spikeWidth) / 2;
+            double spikeY = platformY - spikeHeight; // 刺在平台上方
+            
+            createSpike(spikeX, spikeY, spikeWidth, spikeHeight);
+        }
+        
+        return this;
+    }
+
+    /**
+     * 创建单个刺
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     */
+    public Entity createSpike(double x, double y, int width, int height) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height);
+        
+        Entity spike = FXGL.spawn("spike", data);
+        platforms.add(spike); // 将刺也加入到实体列表中，方便清理
+        return spike;
+    }
+
+    /**
+     * 创建带颜色的刺
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     * @param color 颜色
+     */
+    public Entity createSpike(double x, double y, int width, int height, Color color) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("color", color);
+        
+        Entity spike = FXGL.spawn("spike", data);
+        platforms.add(spike);
+        return spike;
+    }
+
+    /**
+     * 创建弓箭发射器
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     * @param direction 发射方向（"left", "right", "up", "down"）
+     */
+    public Entity createArrowLauncher(double x, double y, int width, int height, String direction) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("direction", direction);
+        
+        Entity launcher = FXGL.spawn("launcher", data);
+        platforms.add(launcher); // 将发射器也加入到实体列表中，方便清理
+        return launcher;
+    }
+
+    /**
+     * 创建自定义发射器
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度  
+     * @param height 高度
+     * @param direction 发射方向
+     * @param fireRate 发射频率（每秒几次）
+     * @param arrowSpeed 弓箭速度
+     * @param color 颜色
+     */
+    public Entity createCustomArrowLauncher(double x, double y, int width, int height, 
+                                        String direction, double fireRate, 
+                                        double arrowSpeed, Color color) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("direction", direction)
+                .put("fireRate", fireRate)
+                .put("arrowSpeed", arrowSpeed)
+                .put("color", color);
+        
+        Entity launcher = FXGL.spawn("launcher", data);
+        platforms.add(launcher);
+        return launcher;
+    }
+
+    /**
+     * 創建連接兩個玩家的硬约束繩子
+     * @param maxLength 繩子最大長度
+     */
+    public Entity createPlayerRope(double maxLength) {
+        SpawnData data = new SpawnData(0, 0) // 繩子位置不重要，它會自動跟隨玩家
+                .put("maxLength", maxLength);
+        
+        Entity rope = FXGL.spawn("rope", data);
+        platforms.add(rope); // 將繩子加入實體列表，方便清理
+        return rope;
+    }
+
+    // 修改清理方法，包含弓箭和发射器的清理
+    /**
+     * 清除所有平台、刺、弓箭和发射器
      */
     public void clearPlatforms() {
         for (Entity platform : platforms) {
@@ -126,8 +260,17 @@ public class Level {
         }
         platforms.clear();
         
+        // 清理所有类型的实体
         FXGL.getGameWorld().getEntitiesByType(EntityType.PLATFORM)
-             .forEach(Entity::removeFromWorld);
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.SPIKE)
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.LAUNCHER)
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.ARROW)
+            .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.ROPE)
+         .forEach(Entity::removeFromWorld);
     }
     
     /**
@@ -142,6 +285,20 @@ public class Level {
      */
     public int getGoblinStartY() {
         return goblinStartY;
+    }
+    
+    /**
+     * 獲取第二個哥布林起始 X 座標
+     */
+    public int getGoblin2StartX() {
+        return goblin2StartX;
+    }
+    
+    /**
+     * 獲取第二個哥布林起始 Y 座標
+     */
+    public int getGoblin2StartY() {
+        return goblin2StartY;
     }
     
     /**
