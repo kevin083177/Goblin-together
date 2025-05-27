@@ -5,25 +5,18 @@ import com.almasb.fxgl.app.GameSettings;
 import com.almasb.fxgl.app.scene.FXGLMenu;
 import com.almasb.fxgl.app.scene.SceneFactory;
 import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.SpawnData;
-import com.almasb.fxgl.input.UserAction;
-import com.almasb.fxgl.physics.CollisionHandler;
 import com.almasb.fxgl.physics.PhysicsComponent;
-import com.almasb.fxgl.physics.PhysicsWorld;
 import com.doggybear.component.Goblin;
 import com.doggybear.component.Timer;
-import com.doggybear.type.EntityType;
-import com.doggybear.factory.FactoryManager;
-import com.doggybear.levels.Level;
-import com.doggybear.levels.LevelManager;
+import com.doggybear.controller.GameController;
+import com.doggybear.controller.InputController;
+import com.doggybear.controller.PhysicsController;
+import com.doggybear.controller.UIController;
 import com.doggybear.menu.MainMenu;
 import com.doggybear.network.NetworkGameManager;
 
-import com.doggybear.event.NetworkGameStartEvent;
-
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -34,6 +27,15 @@ import javafx.scene.text.Text;
 import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class Main extends GameApplication {
+    
+    // 控制器
+    private GameController gameController;
+    private InputController inputController;
+    private PhysicsController physicsController;
+    private UIController uiController;
+    
+    // 遊戲更新相關
+    private double timePassed = 0;
     
     @Override
     protected void initSettings(GameSettings settings) {
@@ -50,302 +52,101 @@ public class Main extends GameApplication {
         });
     }
 
-    private Entity goblin;
-    private Entity goblin2;
-    private Timer timer;
-    private NetworkGameManager networkGameManager;
-
-    private Entity lava;
-    private double lavaHeight = 100;
-    private double lavaRiseSpeed = 5;
-    private double timePassed = 0;
-    private double lavaY = 1000;
-
-    private boolean isGameOver = false;
-    private int WORLD_HEIGHT = 10000;
-
-    private Level level;
-    
-    private double syncTimer = 0;
-    private static final double SYNC_INTERVAL = 1.0 / 60.0;
-
     @Override
     protected void initGame() {
-        isGameOver = false;
-        timePassed = 0;
-        syncTimer = 0;
+        System.out.println("=== Main.initGame() 開始 ===");
         
-        networkGameManager = NetworkGameManager.getInstance();
+        // 初始化遊戲控制器
+        gameController = new GameController();
+        gameController.initGame();
         
-        getEventBus().addEventHandler(NetworkGameStartEvent.NETWORK_GAME_START, 
-            e -> {
-                // System.out.println("收到網路遊戲監聽");
-            });
+        // 初始化物理控制器
+        physicsController = new PhysicsController(
+            gameController.getNetworkGameManager(),
+            this::showGameOver  // 遊戲結束回調
+        );
+        physicsController.setGravity(0, 1500);
         
-        FactoryManager.addAllFactories(getGameWorld());
+        // 初始化UI控制器
+        uiController = new UIController(
+            gameController.getNetworkGameManager(),
+            gameController.getLevel()
+        );
         
-        getGameScene().setBackgroundColor(Color.LIGHTBLUE);
+        // 在這裡直接初始化輸入控制器
+        System.out.println("在 initGame() 中初始化輸入...");
+        Entity goblin = gameController.getGoblin();
+        Entity goblin2 = gameController.getGoblin2();
         
-        level = LevelManager.createLevel();
-        
-        // 生成第一個哥布林
-        goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
-        
-        // 生成第二個哥布林
-        goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
-        
-        if (networkGameManager.isNetworkGame()) {
-            networkGameManager.startNetworkGame(goblin, goblin2);
-            System.out.println("初始化遊戲 主機: " + networkGameManager.getNetworkManager().isHost());
+        if (goblin != null && goblin2 != null) {
+            inputController = new InputController(
+                goblin,
+                goblin2,
+                gameController.getNetworkGameManager()
+            );
+            
+            System.out.println("調用 InputController.initInput()...");
+            inputController.initInput();
         } else {
-            System.out.println("初始化遊戲");
+            System.err.println("錯誤：無法在 initGame() 中初始化輸入，實體為 null");
         }
         
-        timer = new Timer();
-        goblin.addComponent(timer);
-        
-        lavaHeight = level.getInitialLavaHeight();
-        lavaRiseSpeed = level.getLavaRiseSpeed();
-        
-        lava = spawn("lava", new SpawnData(0, lavaY - lavaHeight)
-              .put("width", (int)getAppWidth())
-              .put("height", (int)lavaHeight));
-        
-        getPhysicsWorld().setGravity(0, 1500);
-        
-        getGameScene().getViewport().setBounds(0, -WORLD_HEIGHT, getAppWidth(), WORLD_HEIGHT + getAppHeight());
-        
-        updateViewport();
-    }
-
-    private void updateViewport() {
-        if (goblin == null || goblin2 == null) return;
-        
-        double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25;
-        double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25;
-        
-        double targetViewX = centerX - getAppWidth() / 2;
-        double targetViewY = centerY - getAppHeight() / 2;
-        
-        targetViewX = 0;
-        
-        double minViewY = -WORLD_HEIGHT;
-        double maxViewY = 0;
-        
-        targetViewY = Math.max(minViewY, Math.min(targetViewY, maxViewY));
-        
-        getGameScene().getViewport().setX(targetViewX);
-        getGameScene().getViewport().setY(targetViewY);
+        System.out.println("=== Main.initGame() 完成 ===");
     }
 
     @Override
     protected void initInput() {
-        getInput().addAction(new UserAction("向右移動") {
-            @Override
-            protected void onAction() {
-                if (networkGameManager.isNetworkGame()) {
-                    networkGameManager.handleLocalInput(KeyCode.D, true);
-                } else {
-                    goblin.getComponent(Goblin.class).moveRight();
-                }
-            }
-
-            @Override
-            protected void onActionEnd() {
-                if (networkGameManager.isNetworkGame()) {
-                    networkGameManager.handleLocalInput(KeyCode.D, false);
-                } else {
-                    goblin.getComponent(Goblin.class).stop();
-                }
-            }
-        }, KeyCode.D);
-
-        getInput().addAction(new UserAction("向左移動") {
-            @Override
-            protected void onAction() {
-                if (networkGameManager.isNetworkGame()) {
-                    networkGameManager.handleLocalInput(KeyCode.A, true);
-                } else {
-                    goblin.getComponent(Goblin.class).moveLeft();
-                }
-            }
-
-            @Override
-            protected void onActionEnd() {
-                if (networkGameManager.isNetworkGame()) {
-                    networkGameManager.handleLocalInput(KeyCode.A, false);
-                } else {
-                    goblin.getComponent(Goblin.class).stop();
-                }
-            }
-        }, KeyCode.A);
-
-        getInput().addAction(new UserAction("跳躍") {
-            @Override
-            protected void onActionBegin() {
-                if (networkGameManager.isNetworkGame()) {
-                    networkGameManager.handleLocalInput(KeyCode.SPACE, true);
-                } else {
-                    goblin.getComponent(Goblin.class).jump();
-                }
-            }
-            
-            @Override
-            protected void onActionEnd() {
-                if (networkGameManager.isNetworkGame()) {
-                    networkGameManager.handleLocalInput(KeyCode.SPACE, false);
-                }
-            }
-        }, KeyCode.SPACE);
-
-        getInput().addAction(new UserAction("玩家2向右移動") {
-            @Override
-            protected void onAction() {
-                if (!networkGameManager.isNetworkGame()) {
-                    goblin2.getComponent(Goblin.class).moveRight();
-                }
-            }
-
-            @Override
-            protected void onActionEnd() {
-                if (!networkGameManager.isNetworkGame()) {
-                    goblin2.getComponent(Goblin.class).stop();
-                }
-            }
-        }, KeyCode.RIGHT);
-
-        getInput().addAction(new UserAction("玩家2向左移動") {
-            @Override
-            protected void onAction() {
-                if (!networkGameManager.isNetworkGame()) {
-                    goblin2.getComponent(Goblin.class).moveLeft();
-                }
-            }
-
-            @Override
-            protected void onActionEnd() {
-                if (!networkGameManager.isNetworkGame()) {
-                    goblin2.getComponent(Goblin.class).stop();
-                }
-            }
-        }, KeyCode.LEFT);
-
-        getInput().addAction(new UserAction("玩家2跳躍") {
-            @Override
-            protected void onActionBegin() {
-                if (!networkGameManager.isNetworkGame()) {
-                    goblin2.getComponent(Goblin.class).jump();
-                }
-            }
-        }, KeyCode.ENTER);
+        // 確保遊戲控制器已經初始化且實體已創建
+        if (gameController == null) {
+            System.err.println("GameController 未初始化！");
+            return;
+        }
+        
+        Entity goblin = gameController.getGoblin();
+        Entity goblin2 = gameController.getGoblin2();
+        
+        if (goblin == null || goblin2 == null) {
+            System.err.println("Goblin 實體未創建！");
+            return;
+        }
+        
+        // 現在創建輸入控制器
+        inputController = new InputController(
+            goblin,
+            goblin2,
+            gameController.getNetworkGameManager()
+        );
+        
+        // 初始化輸入
+        inputController.initInput();
+        
+        System.out.println("輸入控制器初始化完成");
     }
     
     @Override
     protected void initPhysics() {
-        PhysicsWorld physicsWorld = getPhysicsWorld();
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.PLATFORM) {
-            @Override
-            protected void onCollisionBegin(Entity goblin, Entity platform) {
-                goblin.getComponent(Goblin.class).onGroundCollision();
-                
-                PhysicsComponent physics = goblin.getComponent(PhysicsComponent.class);
-                if (physics.getVelocityY() > -100) {
-                    goblin.getComponent(Goblin.class).resetJump();
-                }
-            }
-            
-            @Override
-            protected void onCollision(Entity goblin, Entity platform) {
-                PhysicsComponent physics = goblin.getComponent(PhysicsComponent.class);
-                if (Math.abs(physics.getVelocityY()) < 100) {
-                    goblin.getComponent(Goblin.class).resetJump();
-                }
-            }
-        });
-
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.LAVA) {
-            @Override
-            protected void onCollisionBegin(Entity goblin, Entity lava) {
-                showGameOver();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.PLATFORM) {
-            @Override
-            protected void onCollisionBegin(Entity goblin2, Entity platform) {
-                goblin2.getComponent(Goblin.class).onGroundCollision();
-                
-                PhysicsComponent physics = goblin2.getComponent(PhysicsComponent.class);
-                if (physics.getVelocityY() > -100) {
-                    goblin2.getComponent(Goblin.class).resetJump();
-                }
-            }
-            
-            @Override
-            protected void onCollision(Entity goblin2, Entity platform) {
-                PhysicsComponent physics = goblin2.getComponent(PhysicsComponent.class);
-                if (Math.abs(physics.getVelocityY()) < 100) {
-                    goblin2.getComponent(Goblin.class).resetJump();
-                }
-            }
-        });
-
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.LAVA) {
-            @Override
-            protected void onCollisionBegin(Entity goblin2, Entity lava) {
-                showGameOver();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.SPIKE) {
-            @Override
-            protected void onCollisionBegin(Entity goblin, Entity spike) {
-                showGameOver();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.SPIKE) {
-            @Override
-            protected void onCollisionBegin(Entity goblin2, Entity spike) {
-                showGameOver();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.ARROW) {
-            @Override
-            protected void onCollisionBegin(Entity goblin, Entity arrow) {
-                arrow.removeFromWorld();
-                showGameOver();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.ARROW) {
-            @Override
-            protected void onCollisionBegin(Entity goblin2, Entity arrow) {
-                arrow.removeFromWorld();
-                showGameOver();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.ARROW, EntityType.PLATFORM) {
-            @Override
-            protected void onCollisionBegin(Entity arrow, Entity platform) {
-                arrow.removeFromWorld();
-            }
-        });
-        
-        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.ARROW, EntityType.SPIKE) {
-            @Override
-            protected void onCollisionBegin(Entity arrow, Entity spike) {
-                arrow.removeFromWorld();
-            }
-        });
+        physicsController.initPhysics();
+    }
+    
+    @Override
+    protected void initUI() {
+        // 確保控制器已經初始化
+        if (uiController != null) {
+            uiController.initUI();
+        }
     }
     
     @Override
     protected void onUpdate(double tpf) {
-        if (isGameOver) {
+        // 確保控制器已初始化
+        if (gameController == null) return;
+        
+        Entity goblin = gameController.getGoblin();
+        Entity goblin2 = gameController.getGoblin2();
+        com.doggybear.component.Timer timer = gameController.getTimer();
+        NetworkGameManager networkGameManager = gameController.getNetworkGameManager();
+        
+        if (gameController.isGameOver() || gameController.isClientGameOver()) {
             if (goblin != null && goblin.isActive()) {
                 goblin.getComponent(Goblin.class).stop();
                 goblin.getComponent(PhysicsComponent.class).setVelocityY(0);
@@ -358,52 +159,83 @@ public class Main extends GameApplication {
         }
         
         if (networkGameManager.isNetworkGame()) {
-            syncTimer += tpf;
+            // 獲取當前存活時間
+            int currentSurvivalTime = timer != null ? timer.getElapsedSeconds() : 0;
             
-            if (syncTimer >= SYNC_INTERVAL) {
-                if (goblin != null) {
-                    networkGameManager.syncPlayerPosition(goblin, 1);
+            // 更新網路遊戲（包含插值和狀態同步）
+            networkGameManager.updateNetworkGame(tpf, goblin, goblin2, gameController.getLavaHeight(), currentSurvivalTime);
+            
+            // 只有主機端執行遊戲邏輯
+            if (networkGameManager.getNetworkManager().isHost()) {
+                gameController.updateGameLogic(tpf);
+                
+                // 主機端檢查遊戲結束條件
+                if (gameController.checkGameOverConditions()) {
+                    showGameOver();
                 }
-                if (goblin2 != null) {
-                    networkGameManager.syncPlayerPosition(goblin2, 2);
-                }
-                syncTimer = 0;
+            } else {
+                // 客戶端只更新岩漿視覺效果（根據主機端同步的數據）
+                gameController.updateClientLava();
+            }
+        } else {
+            // 本地遊戲，正常執行所有邏輯
+            gameController.updateGameLogic(tpf);
+            
+            if (gameController.checkGameOverConditions()) {
+                showGameOver();
             }
         }
         
-        timePassed += tpf;
+        // 更新視窗
+        gameController.updateViewport();
         
-        if (timePassed > 0.5) {
-            lavaHeight += lavaRiseSpeed;
-            
-            lava.removeFromWorld();
-            lava = spawn("lava", new SpawnData(0, lavaY - lavaHeight)
-                .put("width", (int)getAppWidth())
-                .put("height", (int)lavaHeight));
-            
+        // 更新除錯資訊（可選）
+        updateDebugInfo(tpf);
+    }
+    
+    private void updateDebugInfo(double tpf) {
+        // 確保 UI 控制器已初始化
+        if (uiController == null || gameController == null) return;
+        
+        // 每秒更新一次除錯資訊
+        timePassed += tpf;
+        if (timePassed >= 1.0) {
+            double fps = 1.0 / tpf;
+            int entityCount = getGameWorld().getEntities().size();
+            String networkInfo = gameController.getNetworkGameManager().isNetworkGame() ? 
+                "網路: " + (gameController.getNetworkGameManager().getNetworkManager().isHost() ? "主機" : "客戶端") :
+                "本地遊戲";
+                
+            uiController.showDebugInfo(fps, entityCount, networkInfo);
             timePassed = 0;
         }
-        
-        if ((goblin.getY() + goblin.getHeight() > lavaY - lavaHeight) || 
-            (goblin2.getY() + goblin2.getHeight() > lavaY - lavaHeight)) {
-            showGameOver();
-        }
-        
-        updateViewport();
     }
 
     private void showGameOver() {
-        if (isGameOver) return;
+        if (gameController.isGameOver() || gameController.isClientGameOver()) return;
         
-        isGameOver = true;
+        NetworkGameManager networkGameManager = gameController.getNetworkGameManager();
+        com.doggybear.component.Timer timer = gameController.getTimer();
         
-        if (networkGameManager.isNetworkGame()) {
+        if (networkGameManager.isNetworkGame() && !networkGameManager.getNetworkManager().isHost()) {
+            gameController.setClientGameOver(true);
+        } else {
+            gameController.setGameOver(true);
+        }
+        
+        if (networkGameManager.isNetworkGame() && networkGameManager.getNetworkManager().isHost()) {
             networkGameManager.sendGameOver();
         }
         
         timer.stop();
         
-        int finalSurvivalTime = timer.getElapsedSeconds();
+        // 獲取最終存活時間
+        int finalSurvivalTime;
+        if (networkGameManager.isNetworkGame() && !networkGameManager.getNetworkManager().isHost()) {
+            finalSurvivalTime = gameController.getClientSurvivalTime(); // 客戶端使用主機端的時間
+        } else {
+            finalSurvivalTime = timer.getElapsedSeconds();
+        }
         
         Rectangle overlay = new Rectangle(getAppWidth(), getAppHeight(), Color.color(0, 0, 0, 0.7));
         
@@ -418,7 +250,12 @@ public class Main extends GameApplication {
         gameOverText.setFill(Color.WHITE);
         
         String gameTypeText = networkGameManager.isNetworkGame() ? "網路合作" : "本地合作";
-        Text survivalTimeText = new Text(gameTypeText + "\n存活了 " + finalSurvivalTime + " 秒");
+        String roleText = "";
+        if (networkGameManager.isNetworkGame()) {
+            roleText = networkGameManager.getNetworkManager().isHost() ? " (主機)" : " (客戶端)";
+        }
+        
+        Text survivalTimeText = new Text(gameTypeText + roleText + "\n存活了 " + finalSurvivalTime + " 秒");
         survivalTimeText.setFont(Font.font(20));
         survivalTimeText.setFill(Color.WHITE);
         
@@ -427,7 +264,7 @@ public class Main extends GameApplication {
         restartBtn.setPrefHeight(40);
         restartBtn.setOnAction(e -> {
             networkGameManager.stopNetworkGame();
-            getGameController().startNewGame();
+            restartGame();
         });
         
         Button menuBtn = new Button("回到主頁面");
@@ -435,7 +272,7 @@ public class Main extends GameApplication {
         menuBtn.setPrefHeight(40);
         menuBtn.setOnAction(e -> {
             networkGameManager.stopNetworkGame();
-            getGameController().gotoMainMenu();
+            getGameController().gotoMainMenu(); // 使用 FXGL 的 GameController
         });
         
         VBox modalContent = new VBox(20);
@@ -448,27 +285,34 @@ public class Main extends GameApplication {
         
         getGameScene().addUINodes(overlay, modalPane);
     }
-
-    @Override
-    protected void initUI() {
-        Text title = new Text("Goblin Together");
-        title.setTranslateX(10);
-        title.setTranslateY(30);
+    
+    /**
+     * 重新開始遊戲
+     */
+    private void restartGame() {
+        // 清理現有狀態
+        if (inputController != null) {
+            inputController.clearInput();
+        }
+        if (uiController != null) {
+            uiController.clearUI();
+        }
+        if (physicsController != null) {
+            physicsController.resetPhysics();
+        }
         
-        String controlText = networkGameManager.isNetworkGame() ? 
-            "网络游戏 - 使用 WASD 移動，空白鍵跳躍" : 
-            "玩家1: A/D 移動，空白鍵跳躍 | 玩家2: 方向鍵移動，Enter跳躍";
-        
-        Text helpText = new Text(controlText);
-        helpText.setTranslateX(10);
-        helpText.setTranslateY(60);
-        
-        Text levelText = new Text("關卡: " + (level != null ? level.getName() : ""));
-        levelText.setTranslateX(10);
-        levelText.setTranslateY(90);
-        
-        getGameScene().addUINodes(title, helpText, levelText);
+        // 重新開始遊戲 - 使用 FXGL 的 GameController
+        getGameController().startNewGame();
     }
+    
+    /**
+     * 獲取遊戲控制器實例（用於外部訪問）
+     * 重新命名避免與 FXGL 的 GameController 衝突
+     */
+    public GameController getMyGameController() { return gameController; }
+    public InputController getInputController() { return inputController; }
+    public PhysicsController getPhysicsController() { return physicsController; }
+    public UIController getUIController() { return uiController; }
 
     public static void main(String[] args) {
         launch(args);
