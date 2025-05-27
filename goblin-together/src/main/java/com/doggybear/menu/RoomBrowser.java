@@ -81,7 +81,7 @@ public class RoomBrowser extends FXGLMenu {
         roomNameContainer.setAlignment(Pos.CENTER);
         var roomNameLabel = new Text("房間名稱: ");
         roomNameLabel.setFill(Color.WHITE);
-        roomNameField = new TextField("我的房間");
+        roomNameField = new TextField("未命名的房間");
         roomNameField.setPrefWidth(200);
         roomNameContainer.getChildren().addAll(roomNameLabel, roomNameField);
         
@@ -179,31 +179,11 @@ public class RoomBrowser extends FXGLMenu {
         disableButtons();
         
         if (networkManager.createRoom(roomName, port)) {
-            updateStatus("房間已創建 正在等待玩家進入...\nIP地址: " + networkManager.getHostIP() + ":" + port);
+            updateStatus("房間已創建！正在進入等待畫面...");
             
-            // 设置网络监听器
-            networkManager.setNetworkListener(new com.doggybear.network.NetworkListener() {
-                @Override
-                public void onConnected() {
-                    javafx.application.Platform.runLater(() -> {
-                        updateStatus("玩家已連線 請開始遊戲...");
-                        showWaitingRoom();
-                    });
-                }
-                
-                @Override
-                public void onDisconnected() {
-                    javafx.application.Platform.runLater(() -> {
-                        updateStatus("連線中斷");
-                        enableButtons();
-                    });
-                }
-                
-                @Override
-                public void onMessageReceived(com.doggybear.network.NetworkMessage message) {
-                    // 處理網路訊息
-                }
-            });
+            // 直接進入等待房間
+            showWaitingRoom();
+            
         } else {
             updateStatus("創建房間失敗");
             enableButtons();
@@ -220,52 +200,22 @@ public class RoomBrowser extends FXGLMenu {
         disableButtons();
         
         if (networkManager.joinRoom(ipAddress, port)) {
-            updateStatus("成功連接至房間");
+            updateStatus("成功連接至房間！正在進入等待畫面...");
             
-            // 设置网络监听器
-            networkManager.setNetworkListener(new com.doggybear.network.NetworkListener() {
-                @Override
-                public void onConnected() {
-                    javafx.application.Platform.runLater(() -> {
-                        showWaitingRoom();
-                    });
-                }
-                
-                @Override
-                public void onDisconnected() {
-                    javafx.application.Platform.runLater(() -> {
-                        updateStatus("連線中斷");
-                        enableButtons();
-                    });
-                }
-                
-                @Override
-                public void onMessageReceived(com.doggybear.network.NetworkMessage message) {
-                    if (message.getType() == com.doggybear.network.NetworkMessage.MessageType.GAME_START) {
-                        javafx.application.Platform.runLater(() -> {
-                            // 用戶端收到遊戲開始訊息，設定網路遊戲模式並啟動遊戲
-                            com.doggybear.network.NetworkGameManager.getInstance().setNetworkGameMode(true);
-                            startNetworkGame();
-                        });
-                    }
-                }
-            });
+            // 直接進入等待房間
+            showWaitingRoom();
+            
         } else {
-            updateStatus("連線中斷");
+            updateStatus("連接失敗，請檢查IP地址和端口");
             enableButtons();
         }
     }
     
     private void showWaitingRoom() {
-        // 切換到等待畫面
+        // 切換到增強版等待畫面
         getContentRoot().getChildren().clear();
         var waitingRoom = new WaitingRoom(networkManager);
         getContentRoot().getChildren().add(waitingRoom.getContentRoot());
-    }
-    
-    private void startNetworkGame() {
-        // 開始網路合作
-        com.almasb.fxgl.dsl.FXGL.getGameController().startNewGame();
     }
     
     private void updateStatus(String message) {
