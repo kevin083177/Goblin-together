@@ -10,7 +10,7 @@ public class FactoryManager {
         gameWorld.addEntityFactory(new PlatformFactory());
         gameWorld.addEntityFactory(new LavaFactory());
         gameWorld.addEntityFactory(new SpikeFactory());
-        gameWorld.addEntityFactory(new ArrowLauncherFactory());
+        gameWorld.addEntityFactory(new LauncherFactory());
         gameWorld.addEntityFactory(new RopeFactory());
     }
     
@@ -20,7 +20,7 @@ public class FactoryManager {
             new PlatformFactory(),
             new LavaFactory(),
             new SpikeFactory(),
-            new ArrowLauncherFactory(),
+            new LauncherFactory(),
             new RopeFactory(),
             
         };
