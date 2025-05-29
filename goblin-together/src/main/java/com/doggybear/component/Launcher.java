@@ -6,7 +6,7 @@ import com.almasb.fxgl.dsl.FXGL;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 
-public class ArrowLauncher extends Component {
+public class Launcher extends Component {
     private double fireRate = 1.0;
     private double timeSinceLastShot = 0;
     private String direction;
@@ -16,7 +16,7 @@ public class ArrowLauncher extends Component {
     private int height;
     private Color color = Color.DARKGOLDENROD;
     
-    public ArrowLauncher(int width, int height, String direction) {
+    public Launcher(int width, int height, String direction) {
         this.width = width;
         this.height = height;
         this.direction = direction;
@@ -82,17 +82,17 @@ public class ArrowLauncher extends Component {
         return viewNode;
     }
     
-    public ArrowLauncher setFireRate(double fireRate) {
+    public Launcher setFireRate(double fireRate) {
         this.fireRate = fireRate;
         return this;
     }
     
-    public ArrowLauncher setArrowSpeed(double speed) {
+    public Launcher setArrowSpeed(double speed) {
         this.arrowSpeed = speed;
         return this;
     }
     
-    public ArrowLauncher setColor(Color color) {
+    public Launcher setColor(Color color) {
         this.color = color;
         if (viewNode != null) {
             viewNode.setFill(color);

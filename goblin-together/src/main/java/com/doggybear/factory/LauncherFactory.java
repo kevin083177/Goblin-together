@@ -10,8 +10,8 @@ import com.almasb.fxgl.physics.BoundingShape;
 import com.almasb.fxgl.physics.HitBox;
 import com.almasb.fxgl.physics.PhysicsComponent;
 import com.almasb.fxgl.physics.box2d.dynamics.BodyType;
-import com.doggybear.component.Arrow;
-import com.doggybear.component.ArrowLauncher;
+import com.doggybear.component.Bullet;
+import com.doggybear.component.Launcher;
 import com.doggybear.type.EntityType;
 
 import javafx.scene.paint.Color;
@@ -19,7 +19,7 @@ import javafx.scene.shape.Polygon;
 
 import static com.almasb.fxgl.dsl.FXGL.entityBuilder;
 
-public class ArrowLauncherFactory implements EntityFactory {
+public class LauncherFactory implements EntityFactory {
 
     @Spawns("arrow")
     public Entity newArrow(SpawnData data) {
@@ -27,14 +27,13 @@ public class ArrowLauncherFactory implements EntityFactory {
         String direction = data.get("direction");
         
         // 不使用物理组件，手动控制移动
-        // 创建弓箭的视觉效果（三角形箭头）
         Polygon arrowShape = createArrowShape(direction);
         
         return entityBuilder(data)
                 .type(EntityType.ARROW)
-                .bbox(new HitBox(BoundingShape.box(20, 5))) // 弓箭的碰撞箱
+                .bbox(new HitBox(BoundingShape.box(20, 5))) // 碰撞箱
                 .view(arrowShape)
-                .with(new Arrow(speed, direction))
+                .with(new Bullet(speed, direction))
                 .with(new CollidableComponent(true))
                 .build();
     }
@@ -48,7 +47,7 @@ public class ArrowLauncherFactory implements EntityFactory {
         PhysicsComponent physics = new PhysicsComponent();
         physics.setBodyType(BodyType.STATIC); // 发射器是静态的
         
-        ArrowLauncher launcher = new ArrowLauncher(width, height, direction);
+        Launcher launcher = new Launcher(width, height, direction);
         
         // 设置发射频率（如果有指定）
         if (data.hasKey("fireRate")) {
