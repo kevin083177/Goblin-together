@@ -71,7 +71,7 @@ public class PhysicsController {
                         player.getComponent(Goblin.class).onGroundCollision();
                         
                         if (player.getBottomY() <= platform.getY() + 5) {
-                            disappearing.setPlayerOnPlatform(true);
+                            disappearing.setPlayerOnPlatform(true, player);
                         }
                     }
                 }
@@ -81,7 +81,7 @@ public class PhysicsController {
                     DisappearingPlatform disappearing = platform.getComponent(DisappearingPlatform.class);
                     if (disappearing != null && !disappearing.isVisible()) {
                         player.getComponent(Goblin.class).setOnGround(false);
-                        disappearing.setPlayerOnPlatform(false);
+                        disappearing.setPlayerOnPlatform(false, null);
                     }
                 }
                 
@@ -89,7 +89,7 @@ public class PhysicsController {
                 protected void onCollisionEnd(Entity player, Entity platform) {
                     DisappearingPlatform disappearing = platform.getComponent(DisappearingPlatform.class);
                     if (disappearing != null) {
-                        disappearing.setPlayerOnPlatform(false);
+                        disappearing.setPlayerOnPlatform(false, null);
                     }
                 }
             });
@@ -129,10 +129,33 @@ public class PhysicsController {
                 @Override
                 protected void onCollisionBegin(Entity player, Entity firePlatform) {
                     FirePlatform platform = firePlatform.getComponent(FirePlatform.class);
+                    if (platform != null) {
+                        platform.addPlayer(player);
+                        player.getComponent(Goblin.class).onGroundCollision();
+
+                        if (platform.isFireState()) {
+                            if (gameOverCallback != null) {
+                                gameOverCallback.onGameOver();
+                            }
+                        }
+                    }
+                }
+                
+                @Override
+                protected void onCollision(Entity player, Entity firePlatform) {
+                    FirePlatform platform = firePlatform.getComponent(FirePlatform.class);
                     if (platform != null && platform.isFireState()) {
                         if (gameOverCallback != null) {
                             gameOverCallback.onGameOver();
                         }
+                    }
+                }
+                
+                @Override
+                protected void onCollisionEnd(Entity player, Entity firePlatform) {
+                    FirePlatform platform = firePlatform.getComponent(FirePlatform.class);
+                    if (platform != null) {
+                        platform.removePlayer(player);
                     }
                 }
             });
@@ -161,6 +184,19 @@ public class PhysicsController {
                 }
             });
         }
+
+        for (EntityType playerType : EntityType.playerTypes) {
+            physicsWorld.addCollisionHandler(new CollisionHandler(playerType, EntityType.BULLET) {
+                @Override
+                protected void onCollision(Entity player, Entity bullet) {
+                    if (gameOverCallback != null) {
+                        gameOverCallback.onGameOver();
+                    }
+                    // 移除子彈
+                    bullet.removeFromWorld();
+                }
+            });
+        }
         
         // 子彈與平台的碰撞
         for (EntityType platformType : EntityType.removeBulletTypes) {
@@ -171,5 +207,25 @@ public class PhysicsController {
                 }
             });
         };
+
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN, EntityType.FINISH) {
+            @Override
+            protected void onCollisionBegin(Entity goblin, Entity FinishCircle) {
+                FinishCircle finish = FinishCircle.getComponent(FinishCircle.class);
+                if (finish != null && !finish.isActivated()) {
+                    finish.onPlayerFinish();
+                }
+            }
+        });
+
+        physicsWorld.addCollisionHandler(new CollisionHandler(EntityType.GOBLIN2, EntityType.FINISH) {
+            @Override
+            protected void onCollisionBegin(Entity goblin2, Entity FinishCircle) {
+                FinishCircle finish = FinishCircle.getComponent(FinishCircle.class);
+                if (finish != null && !finish.isActivated()) {
+                    finish.onPlayerFinish();
+                }
+            }
+        });
     }
 }

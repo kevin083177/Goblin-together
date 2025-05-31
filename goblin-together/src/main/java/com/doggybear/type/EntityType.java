@@ -8,7 +8,8 @@ public enum EntityType {
     PLATFORM, BOUNCE, ICE, MOVING, DISAPPEARING, FIRE, // platform
     LAVA, // 岩漿
     SPIKE, // 尖刺
-    BULLET, LAUNCHER; // 弓箭發射
+    BULLET, LAUNCHER, // 弓箭發射
+    FINISH;
 
     public static final EntityType[] playerTypes = {
         EntityType.GOBLIN,

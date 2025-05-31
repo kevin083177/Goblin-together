@@ -12,6 +12,7 @@ public class FactoryManager {
         gameWorld.addEntityFactory(new SpikeFactory());
         gameWorld.addEntityFactory(new LauncherFactory());
         gameWorld.addEntityFactory(new RopeFactory());
+        gameWorld.addEntityFactory(new FinishCircleFactory());
     }
     
     public static EntityFactory[] getAllFactories() {
@@ -22,7 +23,7 @@ public class FactoryManager {
             new SpikeFactory(),
             new LauncherFactory(),
             new RopeFactory(),
-            
+            new FinishCircleFactory()
         };
     }
 }

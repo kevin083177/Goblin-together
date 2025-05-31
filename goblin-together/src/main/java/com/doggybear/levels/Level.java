@@ -3,9 +3,8 @@ package com.doggybear.levels;
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
+import com.doggybear.component.FinishCircle;
 import com.doggybear.type.EntityType;
-
-import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +69,7 @@ public class Level {
      * 創建初始平台
      */
     public Entity createInitialPlatform() {
-        return createPlatform(950, 600, 150, 100, Color.BROWN);
+        return createPlatform(1300, 850, 400, 400,1);
     }
 
 
@@ -80,8 +79,8 @@ public class Level {
      * @param y Y 座標
      * @param width 寬度
      */
-    public Entity createPlatform(double x, double y, int width) {
-        return createPlatform(x, y, width, 20, Color.BROWN);
+    public Entity createPlatform(double x, double y, int width, int imageIndex) {
+        return createPlatform(x, y, width, 50, imageIndex);
     }
     
     /**
@@ -138,16 +137,12 @@ public class Level {
      * @param y Y 座標
      * @param width 寬度
      * @param height 高度
-     * @param color 顏色
      */
-    public Entity createPlatform(double x, double y, int width, int height, Color color) {
+    public Entity createPlatform(double x, double y, int width, int height, int imageIndex) {
         SpawnData data = new SpawnData(x, y)
                 .put("width", width)
-                .put("height", height);
-        
-        if (color != null) {
-            data.put("color", color);
-        }
+                .put("height", height)
+                .put("imageIndex", imageIndex);
         
         Entity platform = FXGL.spawn("platform", data);
         platforms.add(platform);
@@ -225,8 +220,8 @@ public class Level {
      */
     public Entity createBouncePlatform(int x, int y, double bounceHeight) {
         SpawnData data = new SpawnData(x, y)
-            .put("width", 40)
-            .put("height", 40)
+            .put("width", 50)
+            .put("height", 50)
             .put("bounce", -bounceHeight);
 
         Entity bounce = FXGL.spawn("bounce", data);
@@ -242,19 +237,14 @@ public class Level {
      * @param height 高度
      * @param disappearTime 消失所需時間（秒）
      * @param reappearTime 重新出現所需時間（秒）
-     * @param color 平台顏色
      */
     public Entity createDisappearingPlatform(double x, double y, int width, int height, 
-                                           double disappearTime, double reappearTime, Color color) {
+                                           double disappearTime, double reappearTime) {
         SpawnData data = new SpawnData(x, y)
                 .put("width", width)
                 .put("height", height)
                 .put("disappearTime", disappearTime)
                 .put("reappearTime", reappearTime);
-        
-        if (color != null) {
-            data.put("color", color);
-        }
         
         Entity platform = FXGL.spawn("disappearing", data);
         platforms.add(platform);
@@ -262,10 +252,11 @@ public class Level {
     }
 
 
-    public Entity createIcePlatform(double x, double y, int width, int height) {
+    public Entity createIcePlatform(double x, double y, int width, int height, int imageIndex) {
         SpawnData data = new SpawnData(x, y)
                 .put("width", width)
-                .put("height", height);
+                .put("height", height)
+                .put("imageIndex", imageIndex);
         
         Entity ice = FXGL.spawn("ice", data);
         platforms.add(ice);
@@ -273,17 +264,38 @@ public class Level {
     }
 
     public Entity createFirePlatform(double x, double y, int width, int height, 
-                                    double fireDuration, double normalDuration) {
+                                    double fireDuration, double normalDuration, int imageIndex) {
         SpawnData data = new SpawnData(x, y)
                 .put("width", width)
                 .put("height", height)
                 .put("fireDuration", fireDuration)
-                .put("normalDuration", normalDuration);
+                .put("normalDuration", normalDuration)
+                .put("imageIndex", imageIndex);
         
         Entity platform = FXGL.spawn("fire", data);
         platforms.add(platform);
         return platform;
     }
+    /**
+    * 創建終點
+    * @param x X 座標
+    * @param y Y 座標
+    * @param radius 碰撞半徑
+    * @param gameStartTime 遊戲開始時間
+    * @param callback 完成回調
+    */
+    public Entity createFinishCircle(double x, double y, double radius, double gameStartTime, 
+                                FinishCircle.FinishCallback callback) {
+        SpawnData data = new SpawnData(x, y)
+                .put("radius", radius)
+                .put("gameStartTime", gameStartTime)
+                .put("finishCallback", callback);
+        
+        Entity finish = FXGL.spawn("finish", data);
+        platforms.add(finish);
+        return finish;
+    }
+
     /**
      * 清除所有平台、刺、弓箭和发射器
      */

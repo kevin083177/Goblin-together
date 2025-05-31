@@ -3,15 +3,21 @@ package com.doggybear.controller;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.physics.PhysicsComponent;
+import com.almasb.fxgl.texture.Texture;
 import com.doggybear.Settings;
+import com.doggybear.component.FinishCircle;
 import com.doggybear.component.Goblin;
 import com.doggybear.component.Timer;
 import com.doggybear.factory.FactoryManager;
 import com.doggybear.levels.Level;
 import com.doggybear.levels.LevelManager;
+import com.doggybear.ui.GameFinish;
+
 import javafx.scene.paint.Color;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
+
+import com.almasb.fxgl.dsl.FXGL;
 
 public class GameController {
     
@@ -25,19 +31,24 @@ public class GameController {
     private double lavaHeight;
     private double lavaRiseInterval;
     private double lavaY;
-     private double timeSinceLastLavaRise = 0;
+    private double timeSinceLastLavaRise = 0;
     private boolean isGameOver = false;
-    
+    private double gameStartTime;
+
     public void initGame() {
         cleanup();
         
         isGameOver = false;
-        
+        gameStartTime = FXGL.getGameTimer().getNow();
+
         FactoryManager.addAllFactories(getGameWorld());
         
         getGameScene().setBackgroundColor(Color.LIGHTBLUE);
         
         level = LevelManager.createLevel();
+        createFinishLine();
+
+        createStretchedBackgroundEntity();
         
         // 生成哥布林
         goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
@@ -70,7 +81,22 @@ public class GameController {
         // 動態調整視角以確保兩個玩家都在畫面中
         updateViewport();
     }
-    
+    private void createStretchedBackgroundEntity() {
+        double bgWidth = FXGL.getAppWidth() * 1.1;
+        double bgHeight = 3200;
+        
+        Entity background = FXGL.entityBuilder()
+            .at(0, -2200)
+            .zIndex(-1000)
+            .buildAndAttach();
+        
+        Texture bgTexture = FXGL.getAssetLoader().loadTexture("game_background.jpg");
+        bgTexture.setFitWidth(bgWidth);
+        bgTexture.setFitHeight(bgHeight);
+        bgTexture.setPreserveRatio(false);
+        
+        background.getViewComponent().addChild(bgTexture);
+    }
     /**
      * 清理舊的遊戲狀態
      */
@@ -139,6 +165,52 @@ public class GameController {
         }
     }
     
+    private void createFinishLine() {
+        // 創建完成回調
+        FinishCircle.FinishCallback finishCallback = new FinishCircle.FinishCallback() {
+            @Override
+            public void onGameFinish(double totalTime) {
+                // 停止計時器
+                if (timer != null) {
+                    timer.stop();
+                }
+                
+                // 設定遊戲完成狀態
+                setGameOver(true);
+                
+                // 顯示完成畫面
+                showGameFinish(totalTime);
+            }
+        };
+        
+        // 在關卡最高點創建終點 - 根據您的關卡設計調整位置
+        level.createFinishCircle(
+            10, 
+            -1420,
+            30.0,
+            gameStartTime,
+            finishCallback
+        );
+    }
+
+    private void showGameFinish(double totalTime) {
+        GameFinish gameFinish = new GameFinish(totalTime, new GameFinish.GameFinishCallback() {
+            @Override
+            public void onRestart() {
+                // 重新開始當前關卡
+                FXGL.getGameController().startNewGame();
+            }
+            
+            @Override
+            public void onBackToMenu() {
+                // 回到主選單
+                FXGL.getGameController().gotoMainMenu();
+            }
+        });
+        
+        gameFinish.show();
+    }
+
     public boolean checkGameOver() {
         try {
             if (goblin == null || goblin2 == null || !goblin.isActive() || !goblin2.isActive()) {
