@@ -1,24 +1,27 @@
 package com.doggybear.component;
 
+import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.physics.box2d.dynamics.FixtureDef;
-
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
+import com.almasb.fxgl.texture.Texture;
 
 public class IcePlatform extends Component {
-    private Rectangle viewNode;
+    private Texture viewNode;
     private int width;
     private int height;
     
     private static final double ICE_FRICTION = 0.1;
     private static final double ICE_RESTITUTION = 0.0;
     
-    public IcePlatform(int width, int height) {
+    public IcePlatform(int width, int height, int imageIndex) {
         this.width = width;
         this.height = height;
-        this.viewNode = new Rectangle(width, height, Color.BLUEVIOLET);
-        viewNode.setOpacity(0.8); // 半透明效果
+        
+        String imageName = "ice_platform" + imageIndex + ".png";
+        this.viewNode = FXGL.getAssetLoader().loadTexture(imageName);
+        
+        viewNode.setFitHeight(height);
+        viewNode.setFitWidth(width);
     }
     
     public static FixtureDef createIceFixtureDef() {
@@ -28,7 +31,7 @@ public class IcePlatform extends Component {
         return fd;
     }
 
-    public Rectangle getViewNode() {
+    public Texture getViewNode() {
         return viewNode;
     }
     

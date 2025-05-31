@@ -10,6 +10,7 @@ import com.almasb.fxgl.physics.HitBox;
 import com.almasb.fxgl.physics.PhysicsComponent;
 import com.almasb.fxgl.physics.box2d.dynamics.BodyType;
 import com.almasb.fxgl.physics.box2d.dynamics.FixtureDef;
+import com.almasb.fxgl.texture.Texture;
 import com.doggybear.component.Platform;
 import com.doggybear.component.MovingPlatform;
 import com.doggybear.component.DisappearingPlatform;
@@ -18,9 +19,9 @@ import com.doggybear.component.BouncePlatform;
 import com.doggybear.component.IcePlatform;
 import com.doggybear.type.EntityType;
 
-import javafx.scene.paint.Color;
-
 import static com.almasb.fxgl.dsl.FXGL.entityBuilder;
+
+import com.almasb.fxgl.dsl.FXGL;
 
 public class PlatformFactory implements EntityFactory {
 
@@ -36,12 +37,9 @@ public class PlatformFactory implements EntityFactory {
 
         int width = ((Number) data.get("width")).intValue();
         int height = ((Number) data.get("height")).intValue();
+        int imageIndex = data.hasKey("imageIndex") ? ((Number) data.get("imageIndex")).intValue() : 1;
 
-        Platform platform = new Platform(width, height);
-
-        if (data.hasKey("color")) {
-            platform.setColor((Color) data.get("color"));
-        }
+        Platform platform = new Platform(width, height, imageIndex);
 
         return entityBuilder(data)
                 .type(EntityType.PLATFORM)
@@ -66,13 +64,12 @@ public class PlatformFactory implements EntityFactory {
         int width = ((Number) data.get("width")).intValue();
         int height = ((Number) data.get("height")).intValue();
 
-        Platform platform = new Platform(width, height);
         MovingPlatform movingPlatform = new MovingPlatform();
         movingPlatform.setPhysics(physics);
 
-        if (data.hasKey("color")) {
-            platform.setColor((Color) data.get("color"));
-        }
+        Texture texture = FXGL.getAssetLoader().loadTexture("platform2.png");
+        texture.setFitWidth(width);
+        texture.setFitHeight(height);
 
         if (data.hasKey("auto")) {
             movingPlatform.setAuto(data.get("auto"));
@@ -93,8 +90,7 @@ public class PlatformFactory implements EntityFactory {
                 .type(EntityType.MOVING)
                 .bbox(new HitBox(BoundingShape.box(width, height)))
                 .with(physics)
-                .view(platform.getViewNode())
-                .with(platform)
+                .view(texture)
                 .with(movingPlatform)
                 .with(new CollidableComponent(true))
                 .build();
@@ -113,15 +109,15 @@ public class PlatformFactory implements EntityFactory {
         int width = ((Number) data.get("width")).intValue();
         int height = ((Number) data.get("height")).intValue();
 
-        Platform platform = new Platform(width, height);
         DisappearingPlatform disappearingPlatform = new DisappearingPlatform();
-        disappearingPlatform.setPhysics(physics);
-        disappearingPlatform.setViewNode(platform.getViewNode());
-        disappearingPlatform.setDisappearing(true);
 
-        if (data.hasKey("color")) {
-            platform.setColor((Color) data.get("color"));
-        }
+        Texture texture = FXGL.getAssetLoader().loadTexture("platform2.png");
+        texture.setFitWidth(width);
+        texture.setFitHeight(height);
+
+        disappearingPlatform.setPhysics(physics);
+        disappearingPlatform.setViewNode(texture);
+        disappearingPlatform.setDisappearing(true);
 
         if (data.hasKey("disappearTime")) {
             double disappearTime = ((Number) data.get("disappearTime")).doubleValue();
@@ -133,8 +129,7 @@ public class PlatformFactory implements EntityFactory {
                 .type(EntityType.DISAPPEARING)
                 .bbox(new HitBox(BoundingShape.box(width, height)))
                 .with(physics)
-                .view(platform.getViewNode())
-                .with(platform)
+                .view(texture)
                 .with(disappearingPlatform)
                 .with(new CollidableComponent(true))
                 .build();
@@ -154,42 +149,27 @@ public class PlatformFactory implements EntityFactory {
         fd.setRestitution(0.0f);
         physics.setFixtureDef(fd);
 
+        BouncePlatform bouncePlatform = new BouncePlatform(width, height, Math.abs(bounceVelocity));
+
+
         return entityBuilder(data)
             .type(EntityType.BOUNCE)
             .bbox(new HitBox(BoundingShape.box(width, height)))
+            .view(bouncePlatform.getViewNode())
             .with(physics)
             .with(new CollidableComponent(true))
-            .with(new BouncePlatform(width, height, Math.abs(bounceVelocity)))
+            .with(bouncePlatform)
             .build();
     }
 
-    @Spawns("ice")
-    public Entity newIcePlatform(SpawnData data) {
-        int width = ((Number) data.get("width")).intValue();
-        int height = ((Number) data.get("height")).intValue();
-        
-        PhysicsComponent physics = new PhysicsComponent();
-        physics.setBodyType(BodyType.STATIC);
-        
-        physics.setFixtureDef(IcePlatform.createIceFixtureDef());
-        
-        IcePlatform ice = new IcePlatform(width, height);
-        
-        return entityBuilder(data)
-            .type(EntityType.ICE)
-            .bbox(new HitBox(BoundingShape.box(width, height)))
-            .with(physics)
-            .view(ice.getViewNode())
-            .with(new CollidableComponent(true))
-            .build();
-    }
-
-    @Spawns("fire")
+     @Spawns("fire")
     public Entity newFirePlatform(SpawnData data) {
         int width = data.get("width");
         int height = data.get("height");
         double fireDuration = data.get("fireDuration");
         double normalDuration = data.get("normalDuration");
+        
+        int imageIndex = data.hasKey("imageIndex") ? ((Number) data.get("imageIndex")).intValue() : 1;
         
         PhysicsComponent physics = new PhysicsComponent();
         physics.setBodyType(BodyType.STATIC);
@@ -199,7 +179,7 @@ public class PlatformFactory implements EntityFactory {
         fd.setDensity(1.0f);
         physics.setFixtureDef(fd);
         
-        FirePlatform firePlatform = new FirePlatform(fireDuration, normalDuration);
+        FirePlatform firePlatform = new FirePlatform(fireDuration, normalDuration, imageIndex);
         
         return entityBuilder(data)
                 .type(EntityType.FIRE)
@@ -209,5 +189,28 @@ public class PlatformFactory implements EntityFactory {
                 .view(firePlatform.getViewNode())
                 .with(new CollidableComponent(true))
                 .build();
+    }
+
+    @Spawns("ice")
+    public Entity newIcePlatform(SpawnData data) {
+        int width = ((Number) data.get("width")).intValue();
+        int height = ((Number) data.get("height")).intValue();
+        
+        int imageIndex = data.hasKey("imageIndex") ? ((Number) data.get("imageIndex")).intValue() : 1;
+        
+        PhysicsComponent physics = new PhysicsComponent();
+        physics.setBodyType(BodyType.STATIC);
+        
+        physics.setFixtureDef(IcePlatform.createIceFixtureDef());
+        
+        IcePlatform ice = new IcePlatform(width, height, imageIndex);
+        
+        return entityBuilder(data)
+            .type(EntityType.ICE)
+            .bbox(new HitBox(BoundingShape.box(width, height)))
+            .with(physics)
+            .view(ice.getViewNode())
+            .with(new CollidableComponent(true))
+            .build();
     }
 }

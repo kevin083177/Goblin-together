@@ -1,34 +1,26 @@
 package com.doggybear.component;
 
+import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.component.Component;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
+import com.almasb.fxgl.texture.Texture;
 
 public class Platform extends Component {
-    private Rectangle viewNode;
-    private Color color = Color.RED;
+    private Texture viewNode;
     private int width;
     private int height;
 
-    public Platform(int width, int height) {
+    public Platform(int width, int height, int imageIndex) {
         this.width = width;
         this.height = height;
-        this.viewNode = new Rectangle(width, height, color);
+        
+        String imageName = "platform" + imageIndex + ".png";
+        this.viewNode = FXGL.getAssetLoader().loadTexture(imageName);
+        
+        viewNode.setFitHeight(height);
+        viewNode.setFitWidth(width);
     }
 
-    public Rectangle getViewNode() {
+    public Texture getViewNode() {
         return viewNode;
-    }
-
-    public Platform setColor(Color color) {
-        this.color = color;
-        if (viewNode != null) {
-            viewNode.setFill(color);
-        }
-        return this;
-    }
-
-    public Color getColor() {
-        return color;
     }
 }

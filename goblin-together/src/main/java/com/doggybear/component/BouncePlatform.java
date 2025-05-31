@@ -4,6 +4,7 @@ import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.physics.PhysicsComponent;
+import com.almasb.fxgl.texture.Texture;
 import com.doggybear.type.EntityType;
 
 import javafx.scene.shape.Rectangle;
@@ -19,22 +20,17 @@ public class BouncePlatform extends Component {
     private double bounceVelocity;// 彈跳高度
     private int width;
     private int height;
-
-    private Color color = Color.LIME;
+    private Texture viewNode;
 
     public BouncePlatform(int width, int height, double bounceVelocity) {
         this.width = width;
         this.height = height;
         this.bounceVelocity = bounceVelocity;
+        this.viewNode = FXGL.getAssetLoader().loadTexture("bounce_platform.png");
+        viewNode.setFitHeight(height);
+        viewNode.setFitWidth(width);
     }
 
-    @Override
-    public void onAdded() {
-        Rectangle view = new Rectangle(width, height, color);
-        entity.getViewComponent().addChild(view);
-    }
-
-    // 呼叫此方法當玩家碰到平台時施加彈力
     public void bounce(Entity player) {
         PhysicsComponent playerPhysics = player.getComponent(PhysicsComponent.class);
         
@@ -62,5 +58,9 @@ public class BouncePlatform extends Component {
         if (player != null) {
             bounce(player);
         }
+    }
+
+    public Texture getViewNode() {
+        return viewNode;
     }
 }
