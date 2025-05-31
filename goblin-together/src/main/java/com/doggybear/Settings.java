@@ -9,12 +9,12 @@ public class Settings {
     
     // 遊戲視窗設定
     public static final String GAME_TITLE = "Goblin Together";
-    public static final int GAME_WIDTH = 1080;
-    public static final int GAME_HEIGHT = 720;
+    public static final int GAME_WIDTH = 1600;
+    public static final int GAME_HEIGHT = 960;
     
     // 遊戲世界設定
     public static final int WORLD_HEIGHT = 10000;
-    public static final double GRAVITY = 1000;
+    public static final double GRAVITY = 1500;
     
     // 岩漿預設設定
     public static final double DEFAULT_LAVA_HEIGHT = 100;

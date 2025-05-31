@@ -20,14 +20,6 @@ public class Bullet extends Component {
                 this.speedX = speed;
                 this.speedY = 0;
                 break;
-            case "up":
-                this.speedX = 0;
-                this.speedY = -speed;
-                break;
-            case "down":
-                this.speedX = 0;
-                this.speedY = speed;
-                break;
             default:
                 this.speedX = speed;
                 this.speedY = 0;
@@ -49,11 +41,8 @@ public class Bullet extends Component {
     
     private boolean isOutOfBounds() {
         double x = entity.getX();
-        double y = entity.getY();
         double width = entity.getWidth();
-        double height = entity.getHeight();
         
-        return x + width < -50 || x > getAppWidth() + 50 || 
-               y + height < -50 || y > getAppHeight() + 50;
+        return x + width < -50 || x > getAppWidth() + 50;
     }
 }
