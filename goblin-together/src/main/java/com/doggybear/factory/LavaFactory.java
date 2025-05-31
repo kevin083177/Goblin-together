@@ -29,7 +29,7 @@ public class LavaFactory implements EntityFactory {
 
         Group lavaGroup = new Group();
 
-        int blockSize = 40;
+        int blockSize = 50;
         int columns = (width + blockSize - 1) / blockSize;
         int rows = (height + blockSize - 1) / blockSize;
 
