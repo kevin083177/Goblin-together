@@ -12,33 +12,52 @@ import com.almasb.fxgl.physics.box2d.dynamics.BodyType;
 import com.doggybear.component.Spike;
 import com.doggybear.type.EntityType;
 
-import javafx.scene.paint.Color;
+import javafx.geometry.Point2D;
 
 import static com.almasb.fxgl.dsl.FXGL.entityBuilder;
 
 public class SpikeFactory implements EntityFactory {
-
     @Spawns("spike")
     public Entity newSpike(SpawnData data) {
         PhysicsComponent physics = new PhysicsComponent();
         physics.setBodyType(BodyType.STATIC);
         
-        int width = data.get("width");
-        int height = data.get("height");
+        Spike spike = new Spike();
         
-        Spike spike = new Spike(width, height);
+        double width = spike.getWidth();
+        double height = spike.getHeight();
         
-        if (data.hasKey("color")) {
-            spike.setColor((Color) data.get("color"));
-        }
+        Point2D[] polygonPoints = createSpikeCollisionPoints(width, height);
 
         return entityBuilder(data)
                 .type(EntityType.SPIKE)
-                .bbox(new HitBox(BoundingShape.box(width, height)))
+                .bbox(new HitBox(BoundingShape.polygon(polygonPoints)))
                 .view(spike.getViewNode())
                 .with(physics)
                 .with(spike)
                 .with(new CollidableComponent(true))
                 .build();
+    }
+   
+    /**
+     * 尖刺碰撞箱
+     */
+    private Point2D[] createSpikeCollisionPoints(double width, double height) {
+        return new Point2D[] {
+            new Point2D(width * 0.2, height),
+            new Point2D(width * 0.8, height),
+            
+            new Point2D(width * 0.95, height * 0.8),
+            new Point2D(width, height * 0.5),
+            new Point2D(width * 0.95, height * 0.2),
+            
+            new Point2D(width * 0.8, height * 0.05),
+            new Point2D(width * 0.5, 0),
+            new Point2D(width * 0.2, height * 0.05),
+            
+            new Point2D(width * 0.05, height * 0.2),
+            new Point2D(0, height * 0.5),
+            new Point2D(width * 0.05, height * 0.8)
+        };
     }
 }

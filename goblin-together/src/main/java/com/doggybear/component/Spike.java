@@ -1,50 +1,36 @@
 package com.doggybear.component;
 
 import com.almasb.fxgl.entity.component.Component;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Polygon;
+import com.almasb.fxgl.texture.Texture;
+import static com.almasb.fxgl.dsl.FXGL.getAssetLoader;
+import javafx.scene.Node;
 
 public class Spike extends Component {
-    private Polygon viewNode;
-    private int width;
-    private int height;
-    private Color color = Color.DARKRED;
+    private Texture texture;
+    private int width = 40;
+    private int height = 20;
 
-    public Spike(int width, int height) {
-        this.width = width;
-        this.height = height;
-        createSpikeShape();
+    public Spike() {
+        createSpikeTexture();
     }
 
-    private void createSpikeShape() {
-        viewNode = new Polygon();
+    private void createSpikeTexture() {
+        texture = getAssetLoader().loadTexture("Spike.png");
         
-        // 定义三角形的三个顶点（尖端向上）
-        Double[] points = {
-            0.0, (double)height,
-            (double)width/2, 0.0,
-            (double)width, (double)height
-        };
-        
-        viewNode.getPoints().addAll(points);
-        viewNode.setFill(color);
-        viewNode.setStroke(Color.DARKRED.darker());
-        viewNode.setStrokeWidth(1);
+        texture.setFitWidth(width);
+        texture.setFitHeight(height);
+        texture.setPreserveRatio(true);
     }
 
-    public Polygon getViewNode() {
-        return viewNode;
+    public Node getViewNode() {
+        return texture;
     }
 
-    public Spike setColor(Color color) {
-        this.color = color;
-        if (viewNode != null) {
-            viewNode.setFill(color);
-        }
-        return this;
+    public int getWidth() {
+        return width;
     }
 
-    public Color getColor() {
-        return color;
+    public int getHeight() {
+        return height;
     }
 }
