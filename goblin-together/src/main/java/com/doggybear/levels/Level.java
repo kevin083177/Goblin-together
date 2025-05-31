@@ -277,6 +277,19 @@ public class Level {
         platforms.add(ice);
         return ice;
     }
+
+    public Entity createFirePlatform(double x, double y, int width, int height, 
+                                    double fireDuration, double normalDuration) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("fireDuration", fireDuration)
+                .put("normalDuration", normalDuration);
+        
+        Entity platform = FXGL.spawn("fire", data);
+        platforms.add(platform);
+        return platform;
+    }
     /**
      * 清除所有平台、刺、弓箭和发射器
      */

@@ -13,6 +13,7 @@ import com.almasb.fxgl.physics.box2d.dynamics.FixtureDef;
 import com.doggybear.component.Platform;
 import com.doggybear.component.MovingPlatform;
 import com.doggybear.component.DisappearingPlatform;
+import com.doggybear.component.FirePlatform;
 import com.doggybear.component.BouncePlatform;
 import com.doggybear.component.IcePlatform;
 import com.doggybear.type.EntityType;
@@ -181,5 +182,32 @@ public class PlatformFactory implements EntityFactory {
             .view(ice.getViewNode())
             .with(new CollidableComponent(true))
             .build();
+    }
+
+    @Spawns("fire")
+    public Entity newFirePlatform(SpawnData data) {
+        int width = data.get("width");
+        int height = data.get("height");
+        double fireDuration = data.get("fireDuration");
+        double normalDuration = data.get("normalDuration");
+        
+        PhysicsComponent physics = new PhysicsComponent();
+        physics.setBodyType(BodyType.STATIC);
+        
+        FixtureDef fd = new FixtureDef();
+        fd.setFriction(1.0f);
+        fd.setDensity(1.0f);
+        physics.setFixtureDef(fd);
+        
+        FirePlatform firePlatform = new FirePlatform(fireDuration, normalDuration);
+        
+        return entityBuilder(data)
+                .type(EntityType.FIRE)
+                .bbox(new HitBox(BoundingShape.box(width, height)))
+                .with(physics)
+                .with(firePlatform)
+                .view(firePlatform.getViewNode())
+                .with(new CollidableComponent(true))
+                .build();
     }
 }
