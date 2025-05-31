@@ -41,11 +41,8 @@ public class Bullet extends Component {
     
     private boolean isOutOfBounds() {
         double x = entity.getX();
-        double y = entity.getY();
         double width = entity.getWidth();
-        double height = entity.getHeight();
         
-        return x + width < -50 || x > getAppWidth() + 50 || 
-               y + height < -50 || y > getAppHeight() + 50;
+        return x + width < -50 || x > getAppWidth() + 50;
     }
 }
