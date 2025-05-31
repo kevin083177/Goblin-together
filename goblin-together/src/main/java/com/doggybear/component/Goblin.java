@@ -23,6 +23,8 @@ public class Goblin extends Component {
     private final Duration jumpTimeout = Duration.seconds(0.3);
     private boolean isJumping = false;
     
+    private boolean onGround = false;
+    
     private boolean isStandingOnPlayer = false;
     private Entity standingOnPlayer = null;
     
@@ -30,6 +32,10 @@ public class Goblin extends Component {
     private EntityType playerType;
     private EntityType otherPlayerType;
     
+    private boolean onIce = false;
+    private double iceAcceleration = 0.3; // 冰上的加速度
+    private double iceDeceleration = 0.1; // 冰上的减速度
+
     public Goblin(int playerId) {
         this.playerId = playerId;
         
@@ -53,14 +59,38 @@ public class Goblin extends Component {
     public void onUpdate(double tpf) {
         keepWithinScreenBounds();
         updateStandingState();
+        
+        canJump = (onGround || isStandingOnPlayer) && !isJumping;
+    }
+    
+    public void setOnGround(boolean onGround) {
+        this.onGround = onGround;
+        
+        if (onGround) {
+            canJump = true;
+            isJumping = false;
+            jumpTimer.capture();
+        }
+    }
+    
+    public boolean isOnGround() {
+        return onGround || isStandingOnPlayer;
     }
     
     public void moveRight() {
-        physics.setVelocityX(MOVE_SPEED);
+        if (onIce) {
+            physics.setVelocityX(physics.getVelocityX() + MOVE_SPEED * iceAcceleration);
+        } else {
+            physics.setVelocityX(MOVE_SPEED);
+        }
     }
     
     public void moveLeft() {
-        physics.setVelocityX(-MOVE_SPEED);
+        if (onIce) {
+            physics.setVelocityX(physics.getVelocityX() - MOVE_SPEED * iceAcceleration);
+        } else {
+            physics.setVelocityX(-MOVE_SPEED);
+        }
     }
     
     public void jump() {
@@ -75,11 +105,14 @@ public class Goblin extends Component {
             physics.setVelocityY(-jumpForce);
             canJump = false;
             isJumping = true;
+            onGround = false;
             jumpTimer.capture();
         }
     }
     
     public void onGroundCollision() {
+        setOnGround(true); // 碰撞到地面
+        
         if (isJumping && jumpTimer.elapsed(jumpTimeout)) {
             canJump = true;
             isJumping = false;
@@ -87,7 +120,16 @@ public class Goblin extends Component {
     }
     
     public void stop() {
-        physics.setVelocityX(0);
+        if (onIce) {
+            double currentVX = physics.getVelocityX();
+            double newVX = currentVX * (1 - iceDeceleration);
+            
+            if (Math.abs(newVX) < 10) newVX = 0;
+            
+            physics.setVelocityX(newVX);
+        } else {
+            physics.setVelocityX(0);
+        }
     }
     
     private void updateStandingState() {
@@ -268,5 +310,9 @@ public class Goblin extends Component {
         canJump = true;
         isJumping = false;
         jumpTimer.capture();
+    }
+
+    public void setOnIce(boolean onIce) {
+        this.onIce = onIce;
     }
 }

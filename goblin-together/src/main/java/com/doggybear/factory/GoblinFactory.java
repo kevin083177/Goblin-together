@@ -19,23 +19,24 @@ import static com.almasb.fxgl.dsl.FXGL.entityBuilder;
 import com.almasb.fxgl.dsl.FXGL;
 
 public class GoblinFactory implements EntityFactory {
-    
+    private Texture texture;
+
     @Spawns("goblin")
     public Entity newGoblin(SpawnData data) {
-        return createPlayer(data, EntityType.GOBLIN, 1, false);
+        return createPlayer(data, EntityType.GOBLIN, 1);
     }
     
     @Spawns("goblin2")
     public Entity newGoblin2(SpawnData data) {
-        return createPlayer(data, EntityType.GOBLIN2, 2, true);
+        return createPlayer(data, EntityType.GOBLIN2, 2);
     }
     
-    private Entity createPlayer(SpawnData data, EntityType entityType, int playerId, boolean useColorEffect) {
+    private Entity createPlayer(SpawnData data, EntityType entityType, int playerId) {
         PhysicsComponent physics = new PhysicsComponent();
         
         FixtureDef fd = new FixtureDef();
         fd.setFriction(0.0f); // 摩擦力
-        fd.setDensity(2.0f); // 密度，让哥布林更稳定
+        fd.setDensity(2.0f); // 密度
         fd.setRestitution(0.0f); // 彈性
         
         physics.setFixtureDef(fd);
@@ -43,25 +44,25 @@ public class GoblinFactory implements EntityFactory {
         
         physics.setOnPhysicsInitialized(() -> {
             physics.getBody().setFixedRotation(true);
-            // 设置线性阻尼，减少滑动
             physics.getBody().setLinearDamping(5.0f);
         });
 
-        Texture texture = FXGL.getAssetLoader().loadTexture("goblin.png");
+        switch (playerId) {
+            case 1:
+                texture = FXGL.getAssetLoader().loadTexture("goblin.png");
+                break;
+            case 2:
+                texture = FXGL.getAssetLoader().loadTexture("goblin2.png");
+        }
         texture.setFitWidth(50);
         texture.setFitHeight(50);
-        
-        // 为第二个玩家添加颜色效果以区分
-        if (useColorEffect) {
-            texture.setEffect(new javafx.scene.effect.ColorAdjust(0.5, 0.5, 0.0, 0.0));
-        }
 
         return entityBuilder(data)
                 .type(entityType)
                 .bbox(new HitBox(BoundingShape.box(50, 50)))
                 .view(texture)
                 .with(physics)
-                .with(new Goblin(playerId)) // 使用统一的Player组件
+                .with(new Goblin(playerId))
                 .with(new CollidableComponent(true))
                 .build();
     }
