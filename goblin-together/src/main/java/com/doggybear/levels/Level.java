@@ -7,37 +7,31 @@ import com.doggybear.type.EntityType;
 
 import javafx.scene.paint.Color;
 
-import static com.almasb.fxgl.dsl.FXGL.spawn;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class Level {
-    
-    // 預設平台高度
-    private static final int STANDARD_HEIGHT = 20;
-    
     private String name;
-    private double lavaRiseSpeed = 5.0;
-    private int initialLavaHeight = 120;
-    private int goblinStartX = 500;
-    private int goblinStartY = 550;
-    // 新增第二個玩家的起始位置
-    private int goblin2StartX = 600;
-    private int goblin2StartY = 550;
+    private double lavaRiseInterval;
+    private int initialLavaHeight;
+
+    private int goblinStartX;
+    private int goblinStartY;
+    private int goblin2StartX;
+    private int goblin2StartY;
     
     private List<Entity> platforms = new ArrayList<>();
 
-    public Level(String name) {
-        this.name = name;
+    public Level() {
+
     }
     
     /**
      * 設置岩漿上升速度
      * @param speed 速度
      */
-    public Level setLavaRiseSpeed(double speed) {
-        this.lavaRiseSpeed = speed;
+    public Level setLavaRiseSpeed(double seconds) {
+        this.lavaRiseInterval = seconds;
         return this;
     }
     
@@ -76,7 +70,7 @@ public class Level {
      * 創建初始平台
      */
     public Entity createInitialPlatform() {
-        return createPlatform(-100, 600, 1200, 400, Color.BROWN);
+        return createPlatform(950, 600, 150, 100, Color.BROWN);
     }
 
 
@@ -87,7 +81,7 @@ public class Level {
      * @param width 寬度
      */
     public Entity createPlatform(double x, double y, int width) {
-        return createPlatform(x, y, width, STANDARD_HEIGHT, Color.BROWN);
+        return createPlatform(x, y, width, 20, Color.BROWN);
     }
     
     /**
@@ -345,8 +339,8 @@ public class Level {
     /**
      * 獲取岩漿上升速度
      */
-    public double getLavaRiseSpeed() {
-        return lavaRiseSpeed;
+    public double getLavaRiseInterval() {
+        return lavaRiseInterval;
     }
     
     /**

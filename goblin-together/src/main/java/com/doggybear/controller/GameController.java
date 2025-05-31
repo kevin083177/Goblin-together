@@ -23,16 +23,15 @@ public class GameController {
     
     // 遊戲狀態
     private double lavaHeight;
-    private double lavaRiseSpeed;
+    private double lavaRiseInterval;
     private double lavaY;
-    private double timePassed = 0;
+     private double timeSinceLastLavaRise = 0;
     private boolean isGameOver = false;
     
     public void initGame() {
         cleanup();
         
         isGameOver = false;
-        timePassed = 0;
         
         FactoryManager.addAllFactories(getGameWorld());
         
@@ -40,13 +39,10 @@ public class GameController {
         
         level = LevelManager.createLevel();
         
-        // 生成第一個哥布林
+        // 生成哥布林
         goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
-        
-        // 生成第二個哥布林
         goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
         
-        // 確保實體已經添加了 Goblin 組件
         if (goblin.getComponent(Goblin.class) == null) {
             System.err.println("Warning: goblin entity doesn't have Goblin component!");
         }
@@ -59,7 +55,7 @@ public class GameController {
         
         // 從 Settings 獲取預設值
         lavaHeight = level.getInitialLavaHeight();
-        lavaRiseSpeed = level.getLavaRiseSpeed();
+        lavaRiseInterval = level.getLavaRiseInterval();
         lavaY = Settings.LAVA_Y_POSITION;
         
         lava = spawn("lava", new SpawnData(0, lavaY - lavaHeight)
@@ -68,7 +64,7 @@ public class GameController {
         
         getPhysicsWorld().setGravity(0, Settings.GRAVITY);
         
-        // 修改視角，確保兩個玩家都在畫面中
+        // 確保兩個玩家都在畫面中
         getGameScene().getViewport().setBounds(0, -Settings.WORLD_HEIGHT, getAppWidth(), Settings.WORLD_HEIGHT + getAppHeight());
         
         // 動態調整視角以確保兩個玩家都在畫面中
@@ -95,13 +91,13 @@ public class GameController {
         }
         
         // 更新經過的時間
-        timePassed += tpf;
+        timeSinceLastLavaRise += tpf;
         
-        // 每0.5秒更新岩漿高度，讓它變高
-        if (timePassed > Settings.LAVA_UPDATE_INTERVAL) {
-            lavaHeight += lavaRiseSpeed;
+        // 当计时器超过设定的间隔时间时，上升岩浆
+        if (timeSinceLastLavaRise > lavaRiseInterval) {
+            lavaHeight += 5; // 每次上升5像素
             
-            // 重新設置岩漿的Y坐標和高度
+            // 重新设置岩浆的Y坐标和高度
             if (lava != null && lava.isActive()) {
                 lava.removeFromWorld();
             }
@@ -109,7 +105,7 @@ public class GameController {
                 .put("width", (int)getAppWidth())
                 .put("height", (int)lavaHeight));
             
-            timePassed = 0;
+            timeSinceLastLavaRise = 0; // 重置计时器
         }
     }
     
