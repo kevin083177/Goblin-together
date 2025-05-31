@@ -20,7 +20,6 @@ public class GameController {
     private Timer timer;
     private Entity lava;
     private Level level;
-    private InputController inputController;
     
     // 遊戲狀態
     private double lavaHeight;
@@ -30,6 +29,8 @@ public class GameController {
     private boolean isGameOver = false;
     
     public void initGame() {
+        cleanup();
+        
         isGameOver = false;
         timePassed = 0;
         
@@ -44,8 +45,18 @@ public class GameController {
         
         // 生成第二個哥布林
         goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
+        
+        // 確保實體已經添加了 Goblin 組件
+        if (goblin.getComponent(Goblin.class) == null) {
+            System.err.println("Warning: goblin entity doesn't have Goblin component!");
+        }
+        if (goblin2.getComponent(Goblin.class) == null) {
+            System.err.println("Warning: goblin2 entity doesn't have Goblin component!");
+        }
+        
         timer = new Timer();
         goblin.addComponent(timer);
+        
         // 從 Settings 獲取預設值
         lavaHeight = level.getInitialLavaHeight();
         lavaRiseSpeed = level.getLavaRiseSpeed();
@@ -62,33 +73,24 @@ public class GameController {
         
         // 動態調整視角以確保兩個玩家都在畫面中
         updateViewport();
-        
-        initInputController();
     }
     
     /**
-     * 初始化輸入控制器
+     * 清理舊的遊戲狀態
      */
-    private void initInputController() {
-        if (inputController == null) {
-            inputController = new InputController(getGoblin(), getGoblin2());
-            inputController.initInput();
-        } else {
-            inputController.updateEntities(goblin, goblin2);
-        }
+    private void cleanup() {
+        // 清理舊的實體
+        goblin = null;
+        goblin2 = null;
+        lava = null;
+        timer = null;
+        level = null;
     }
-    
+     
     public void update(double tpf) {
         // 如果遊戲已經結束 不再更新岩漿 Goblin 禁止移動
         if (isGameOver) {
-            if (goblin != null && goblin.isActive()) {
-                goblin.getComponent(Goblin.class).stop();
-                goblin.getComponent(PhysicsComponent.class).setVelocityY(0);
-            }
-            if (goblin2 != null && goblin2.isActive()) {
-                goblin2.getComponent(Goblin.class).stop();
-                goblin2.getComponent(PhysicsComponent.class).setVelocityY(0);
-            }
+            stopGoblins();
             return;
         }
         
@@ -100,7 +102,9 @@ public class GameController {
             lavaHeight += lavaRiseSpeed;
             
             // 重新設置岩漿的Y坐標和高度
-            lava.removeFromWorld();
+            if (lava != null && lava.isActive()) {
+                lava.removeFromWorld();
+            }
             lava = spawn("lava", new SpawnData(0, lavaY - lavaHeight)
                 .put("width", (int)getAppWidth())
                 .put("height", (int)lavaHeight));
@@ -109,37 +113,86 @@ public class GameController {
         }
     }
     
+    private void stopGoblins() {
+        try {
+            if (goblin != null && goblin.isActive()) {
+                Goblin goblinComponent = goblin.getComponent(Goblin.class);
+                PhysicsComponent physicsComponent = goblin.getComponent(PhysicsComponent.class);
+                
+                if (goblinComponent != null) {
+                    goblinComponent.stop();
+                }
+                if (physicsComponent != null) {
+                    physicsComponent.setVelocityY(0);
+                }
+            }
+            
+            if (goblin2 != null && goblin2.isActive()) {
+                Goblin goblin2Component = goblin2.getComponent(Goblin.class);
+                PhysicsComponent physics2Component = goblin2.getComponent(PhysicsComponent.class);
+                
+                if (goblin2Component != null) {
+                    goblin2Component.stop();
+                }
+                if (physics2Component != null) {
+                    physics2Component.setVelocityY(0);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error stopping goblins: " + e.getMessage());
+        }
+    }
+    
     public boolean checkGameOver() {
-        // 檢查兩位玩家是否都掉入岩漿
-        return (goblin.getY() + goblin.getHeight() > lavaY - lavaHeight) || 
-               (goblin2.getY() + goblin2.getHeight() > lavaY - lavaHeight);
+        try {
+            if (goblin == null || goblin2 == null || !goblin.isActive() || !goblin2.isActive()) {
+                return false;
+            }
+            
+            return (goblin.getY() + goblin.getHeight() > lavaY - lavaHeight) || 
+                   (goblin2.getY() + goblin2.getHeight() > lavaY - lavaHeight);
+        } catch (Exception e) {
+            System.err.println("Error checking game over: " + e.getMessage());
+            return false;
+        }
     }
     
     public void updateViewport() {
-        if (goblin == null || goblin2 == null) return;
-        
-        // 計算兩個哥布林的中心點作為視角中心
-        double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25; // 加上一半的寬度(50/2)
-        double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25; // 加上一半的高度(50/2)
-        
-        // 計算目標視角位置（讓中心點位於畫面中央）
-        double targetViewX = centerX - getAppWidth() / 2;
-        double targetViewY = centerY - getAppHeight() / 2;
-        
-        targetViewX = 0; // 固定X軸位置
-        
-        double minViewY = -Settings.WORLD_HEIGHT; // 上邊界
-        double maxViewY = 0; // 下邊界
-        
-        targetViewY = Math.max(minViewY, Math.min(targetViewY, maxViewY));
-        
-        getGameScene().getViewport().setX(targetViewX);
-        getGameScene().getViewport().setY(targetViewY);
+        try {
+            if (goblin == null || goblin2 == null || !goblin.isActive() || !goblin2.isActive()) {
+                return;
+            }
+            
+            // 計算兩個哥布林的中心點作為視角中心
+            double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25; // 加上一半的寬度(50/2)
+            double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25; // 加上一半的高度(50/2)
+            
+            // 計算目標視角位置（讓中心點位於畫面中央）
+            double targetViewX = centerX - getAppWidth() / 2;
+            double targetViewY = centerY - getAppHeight() / 2;
+            
+            targetViewX = 0; // 固定X軸位置
+            
+            double minViewY = -Settings.WORLD_HEIGHT; // 上邊界
+            double maxViewY = 0; // 下邊界
+            
+            targetViewY = Math.max(minViewY, Math.min(targetViewY, maxViewY));
+            
+            getGameScene().getViewport().setX(targetViewX);
+            getGameScene().getViewport().setY(targetViewY);
+        } catch (Exception e) {
+            System.err.println("Error updating viewport: " + e.getMessage());
+        }
     }
     
-    // Getters
-    public Entity getGoblin() { return goblin; }
-    public Entity getGoblin2() { return goblin2; }
+    public Entity getGoblin() { 
+        return (goblin != null && goblin.isActive()) ? goblin : null; 
+    }
+    
+    public Entity getGoblin2() { 
+        return (goblin2 != null && goblin2.isActive()) ? goblin2 : null; 
+    }
+    
     public Timer getTimer() { return timer; }
     public Level getLevel() { return level; }
     public boolean isGameOver() { return isGameOver; }
