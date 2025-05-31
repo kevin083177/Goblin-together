@@ -2,8 +2,12 @@ package com.doggybear;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
+import com.almasb.fxgl.input.UserAction;
+import com.doggybear.component.Goblin;
 import com.doggybear.controller.*;
 import com.doggybear.ui.GameOver;
+
+import javafx.scene.input.KeyCode;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
@@ -11,8 +15,6 @@ public class Main extends GameApplication {
     
     // 控制器
     private GameController gameController;
-    
-
     private PhysicsController physicsController;
     private UIController uiController;
     private GameOver gameOver;
@@ -35,7 +37,74 @@ public class Main extends GameApplication {
         // 初始化UI控制器
         uiController = new UIController(gameController.getLevel());
     }
-   
+    
+    @Override
+    protected void initInput() {
+        // 第一个玩家控制 - WASD 和空格跳躍
+        getInput().addAction(new UserAction("向右移動") {
+            @Override
+            protected void onAction() {
+                gameController.getGoblin().getComponent(Goblin.class).moveRight();
+            }
+
+            @Override
+            protected void onActionEnd() {
+                gameController.getGoblin().getComponent(Goblin.class).stop();
+            }
+        }, KeyCode.D);
+
+        getInput().addAction(new UserAction("向左移動") {
+            @Override
+            protected void onAction() {
+                gameController.getGoblin().getComponent(Goblin.class).moveLeft();
+            }
+
+            @Override
+            protected void onActionEnd() {
+                gameController.getGoblin().getComponent(Goblin.class).stop();
+            }
+        }, KeyCode.A);
+
+        getInput().addAction(new UserAction("跳躍") {
+            @Override
+            protected void onActionBegin() {
+                gameController.getGoblin().getComponent(Goblin.class).jump();
+            }
+        }, KeyCode.SPACE);
+
+        // 第二个玩家控制 - 方向鍵和Enter跳躍
+        getInput().addAction(new UserAction("玩家2向右移動") {
+            @Override
+            protected void onAction() {
+                gameController.getGoblin2().getComponent(Goblin.class).moveRight();
+            }
+
+            @Override
+            protected void onActionEnd() {
+                gameController.getGoblin2().getComponent(Goblin.class).stop();
+            }
+        }, KeyCode.RIGHT);
+
+        getInput().addAction(new UserAction("玩家2向左移動") {
+            @Override
+            protected void onAction() {
+                gameController.getGoblin2().getComponent(Goblin.class).moveLeft();
+            }
+
+            @Override
+            protected void onActionEnd() {
+                gameController.getGoblin2().getComponent(Goblin.class).stop();
+            }
+        }, KeyCode.LEFT);
+
+        getInput().addAction(new UserAction("玩家2跳躍") {
+            @Override
+            protected void onActionBegin() {
+                gameController.getGoblin2().getComponent(Goblin.class).jump();
+            }
+        }, KeyCode.ENTER);
+    }
+
     @Override
     protected void initPhysics() {
         physicsController.initPhysics();
