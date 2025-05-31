@@ -2,11 +2,11 @@ package com.doggybear.menu;
 
 import com.almasb.fxgl.app.scene.FXGLMenu;
 import com.almasb.fxgl.app.scene.MenuType;
+import com.almasb.fxgl.dsl.FXGL;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.image.Image;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
@@ -16,72 +16,58 @@ public class MainMenu extends FXGLMenu {
     public MainMenu() {
         super(MenuType.MAIN_MENU);
         
-        // 創建一個容器來保存背景與按鈕
-        var root = new StackPane();
+        // 加载背景图片（确保路径正确）
+        Image bgImage = FXGL.image("background.png");
+        BackgroundImage background = new BackgroundImage(
+                bgImage,
+                BackgroundRepeat.NO_REPEAT,
+                BackgroundRepeat.NO_REPEAT,
+                BackgroundPosition.CENTER,
+                new BackgroundSize(100, 100, true, true, true, true)
+        );
         
-        // 創建一個封面圖片（這裡使用矩形作為示例）
-        // 實際使用時，您需要替換為真實的圖片路徑：
-        // var coverImage = new ImageView(new Image("file:assets/textures/cover.png"));
-        // coverImage.setFitWidth(720);
-        // coverImage.setFitHeight(480);
+        // 创建主容器并设置背景
+        StackPane root = new StackPane();
+        root.setBackground(new Background(background));
+        root.setPrefSize(getAppWidth(), getAppHeight());
         
-        // 這裡用矩形作為圖片的替代品，在實際應用中請替換為上面的代碼
-        var coverPlaceholder = new Rectangle(720, 480, Color.DARKGREEN);
-        coverPlaceholder.setStroke(Color.GOLD);
-        coverPlaceholder.setStrokeWidth(2);
+        // 添加半透明遮罩层增强文字可读性
+        Rectangle overlay = new Rectangle(getAppWidth(), getAppHeight());
+        overlay.setFill(Color.color(0, 0, 0, 0.1));
+        root.getChildren().add(overlay);
         
-        // 創建按鈕面板
-        var buttonPanel = new VBox(20);
-        buttonPanel.setAlignment(Pos.CENTER_RIGHT);
-        buttonPanel.setTranslateX(100);
+        // 创建内容容器（垂直布局）
+        VBox contentBox = new VBox(40);
+        contentBox.setAlignment(Pos.CENTER);
+        contentBox.setTranslateY(-50);  // 轻微上移
         
-        // 創建標題
-        var title = new Text("Goblin Together");
-        title.setFill(Color.WHITE);
-        title.setStyle("-fx-font-size: 48px; -fx-font-weight: bold;");
+        // 创建按钮容器（水平居中）
+        VBox buttonContainer = new VBox(30);
+        buttonContainer.setAlignment(Pos.BASELINE_CENTER);
         
-        // 創建子標題，表明支持兩人遊玩
-        var subtitle = new Text("雙人本地合作遊戲");
-        subtitle.setFill(Color.LIGHTGRAY);
-        subtitle.setStyle("-fx-font-size: 24px;");
+        // 创建按钮
+        Button btnLocalCoop = createButton("單機合作", "#4CAF50");
+        Button btnOnlineCoop = createButton("線上合作", "#F3C5A4");
+
+        Button btnControls = createButton("操作說明", "#2196F3");
+        Button btnExit = createButton("退出", "#F44336");
         
-        // 創建按鈕
-        var btnLocalCoop = createButton("開始遊戲");
-        var btnControls = createButton("操作說明");
-        var btnExit = createButton("退出");
+        // 设置按钮事件
+        btnLocalCoop.setOnAction(e -> fireNewGame());
+        btnOnlineCoop.setOnAction(null);
+        btnControls.setOnAction(e -> showControls());
+        btnExit.setOnAction(e -> fireExit());
         
-        // 設置按鈕事件
-        btnLocalCoop.setOnAction(e -> {
-            fireNewGame();
-        });
+        // 添加按钮到容器
+        buttonContainer.getChildren().addAll(btnLocalCoop, btnOnlineCoop, btnControls, btnExit);
         
-        btnControls.setOnAction(e -> {
-            // 顯示控制說明
-            showControls();
-        });
+        // 添加所有元素到内容容器
+        contentBox.getChildren().addAll(buttonContainer);
         
-        btnExit.setOnAction(e -> {
-            fireExit();
-        });
+        // 添加内容容器到根容器
+        root.getChildren().add(contentBox);
         
-        // 添加按鈕到面板
-        buttonPanel.getChildren().addAll(btnLocalCoop, btnControls, btnExit);
-        
-        // 創建佈局
-        var layout = new HBox(50);
-        layout.setAlignment(Pos.CENTER);
-        
-        // 創建左側的容器（包含圖片和標題）
-        var leftPane = new VBox(20);
-        leftPane.setAlignment(Pos.CENTER);
-        leftPane.getChildren().addAll(title, subtitle, coverPlaceholder);
-        
-        // 將左側容器和按鈕面板添加到水平佈局中
-        layout.getChildren().addAll(leftPane, buttonPanel);
-        
-        // 添加佈局到根容器
-        root.getChildren().add(layout);
-        
+        // 设置到场景
         getContentRoot().getChildren().add(root);
     }
     
@@ -108,7 +94,7 @@ public class MainMenu extends FXGLMenu {
         var objective = new Text("目標: 逃避不斷上升的岩漿，存活越久越好！");
         objective.setFill(Color.WHITE);
         
-        var closeBtn = createButton("關閉");
+        var closeBtn = createButton("關閉", "#FF9800");
         closeBtn.setPrefWidth(100);
         closeBtn.setOnAction(e -> {
             getContentRoot().getChildren().remove(controlsPane);
@@ -123,20 +109,45 @@ public class MainMenu extends FXGLMenu {
         getContentRoot().getChildren().add(controlsPane);
     }
     
-    private Button createButton(String text) {
-        var button = new Button(text);
-        button.setPrefWidth(200);
-        button.setPrefHeight(50);
-        button.setStyle("-fx-font-size: 20px; -fx-background-color: #4a4a4a; -fx-text-fill: white;");
+    private Button createButton(String text, String colorHex) {
+        Button button = new Button(text);
+        button.setPrefSize(180, 60);
         
-        // 鼠標懸停效果
-        button.setOnMouseEntered(e -> {
-            button.setStyle("-fx-font-size: 20px; -fx-background-color: #6a6a6a; -fx-text-fill: white;");
-        });
+        // 现代扁平化按钮样式
+        button.setStyle(String.format(
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: %s;" +
+            "-fx-background-radius: 30;" +
+            "-fx-border-radius: 30;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 0, 2);",
+            colorHex
+        ));
         
-        button.setOnMouseExited(e -> {
-            button.setStyle("-fx-font-size: 20px; -fx-background-color: #4a4a4a; -fx-text-fill: white;");
-        });
+        // 悬停效果
+        button.setOnMouseEntered(e -> button.setStyle(String.format(
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: derive(%s, 20%%);" +
+            "-fx-background-radius: 30;" +
+            "-fx-border-radius: 30;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 10, 0, 0, 3);",
+            colorHex
+        )));
+        
+        // 鼠标移出效果
+        button.setOnMouseExited(e -> button.setStyle(String.format(
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: %s;" +
+            "-fx-background-radius: 30;" +
+            "-fx-border-radius: 30;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 0, 2);",
+            colorHex
+        )));
         
         return button;
     }

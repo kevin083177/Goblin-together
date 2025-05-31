@@ -12,7 +12,6 @@ public class UIController {
     private Level level;
     private Text titleText;
     private Text helpText;
-    private Text levelText;
     
     public UIController(Level level) {
         this.level = level;
@@ -33,26 +32,10 @@ public class UIController {
         helpText.setFill(Color.LIGHTBLUE);
         helpText.setFont(Font.font("Arial", 14));
         
-        // 關卡資訊
-        levelText = new Text("關卡: " + (level != null ? level.getName() : ""));
-        levelText.setTranslateX(10);
-        levelText.setTranslateY(90);
-        levelText.setFill(Color.YELLOW);
-        levelText.setFont(Font.font("Arial", 16));
-        
-        getGameScene().addUINodes(titleText, helpText, levelText);
+        getGameScene().addUINodes(titleText, helpText);
     }
     
-    /**
-     * 更新關卡資訊
-     */
-    public void updateLevelInfo(Level newLevel) {
-        this.level = newLevel;
-        if (levelText != null) {
-            levelText.setText("關卡: " + (level != null ? level.getName() : ""));
-        }
-    }
-    
+      
     /**
      * 顯示遊戲提示
      */
@@ -81,6 +64,5 @@ public class UIController {
     public void clearUI() {
         if (titleText != null) getGameScene().removeUINode(titleText);
         if (helpText != null) getGameScene().removeUINode(helpText);
-        if (levelText != null) getGameScene().removeUINode(levelText);
     }
 }

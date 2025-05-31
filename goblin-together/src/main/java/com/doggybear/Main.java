@@ -12,8 +12,6 @@ import javafx.scene.input.KeyCode;
 import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class Main extends GameApplication {
-    
-    // 控制器
     private GameController gameController;
     private PhysicsController physicsController;
     private UIController uiController;
@@ -21,7 +19,6 @@ public class Main extends GameApplication {
     
     @Override
     protected void initSettings(GameSettings settings) {
-        // 使用 Settings 類別來初始化設定
         Settings.initSettings(settings);
     }
 
@@ -40,7 +37,6 @@ public class Main extends GameApplication {
     
     @Override
     protected void initInput() {
-        // 第一个玩家控制 - WASD 和空格跳躍
         getInput().addAction(new UserAction("向右移動") {
             @Override
             protected void onAction() {
@@ -72,7 +68,6 @@ public class Main extends GameApplication {
             }
         }, KeyCode.SPACE);
 
-        // 第二个玩家控制 - 方向鍵和Enter跳躍
         getInput().addAction(new UserAction("玩家2向右移動") {
             @Override
             protected void onAction() {
@@ -118,13 +113,10 @@ public class Main extends GameApplication {
     @Override
     protected void onUpdate(double tpf) {
         gameController.update(tpf);
-        
-        // 檢查遊戲結束條件
         if (gameController.checkGameOver()) {
             showGameOver();
         }
         
-        // 更新視窗
         gameController.updateViewport();
     }
 
