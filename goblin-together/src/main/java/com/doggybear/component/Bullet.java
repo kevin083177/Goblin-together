@@ -20,14 +20,6 @@ public class Bullet extends Component {
                 this.speedX = speed;
                 this.speedY = 0;
                 break;
-            case "up":
-                this.speedX = 0;
-                this.speedY = -speed;
-                break;
-            case "down":
-                this.speedX = 0;
-                this.speedY = speed;
-                break;
             default:
                 this.speedX = speed;
                 this.speedY = 0;
