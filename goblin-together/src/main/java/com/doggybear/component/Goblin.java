@@ -315,4 +315,9 @@ public class Goblin extends Component {
     public void setOnIce(boolean onIce) {
         this.onIce = onIce;
     }
+
+    public void setPlatformDisappeared() {
+        setOnGround(false);
+        physics.setVelocityY(0.1);
+    }
 }
