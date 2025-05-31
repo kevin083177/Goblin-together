@@ -7,6 +7,8 @@ import com.doggybear.type.EntityType;
 
 import javafx.scene.paint.Color;
 
+import static com.almasb.fxgl.dsl.FXGL.spawn;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,21 +91,48 @@ public class Level {
     }
     
     /**
-     * 創建移動平台
+     * 創建垂直移動平台
      * @param x X 座標
      * @param y Y 座標
      * @param width 寬度
      * @param speed 移動速度
      * @param distance 移動距離
+     * @param auto 是否自動移動
      */
-    public Level createMovingPlatform(double x, double y, int width, int height, double speed, double distance) {
+    public Level createVericalMovingPlatform(double x, double y, int width, int height, double speedY, double distanceY, boolean auto) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("verticalMoving", true)
+                .put("speedY", speedY)
+                .put("auto", auto)
+                .put("distanceY", distanceY);
+        
+        Entity platform = FXGL.spawn("moving", data);
+        platforms.add(platform);
+        return this;
+    }
+
+    /**
+     * 創建水平移動平台
+     * @param x X 座標
+     * @param y Y 座標
+     * @param width 寬度
+     * @param speed 移動速度
+     * @param distance 移動距離
+     * @param auto 是否自動移動
+     */
+    public Level createHorizontalMovingPlatform(double x, double y, int width, int height, double speedX, double distanceX, boolean auto) {
         SpawnData data = new SpawnData(x, y)
             .put("width", width)
             .put("height", height)
-            .put("moving", true)
-            .put("speed", speed)
-            .put("distance", distance);
-        FXGL.spawn("platform", data);
+            .put("horizontalMoving", true)
+            .put("speedX", speedX)
+            .put("auto", auto)
+            .put("distanceX", distanceX);
+        
+        Entity platform = FXGL.spawn("moving", data);
+        platforms.add(platform);
         return this;
     }
     
@@ -132,59 +161,12 @@ public class Level {
     }
   
     /**
-     * 在平台上创建刺
-     * @param platformX 平台的X坐标
-     * @param platformY 平台的Y坐标
-     * @param platformWidth 平台宽度
-     * @param spikeWidth 单个刺的宽度
-     * @param spikeHeight 刺的高度
-     * @param spikeCount 刺的数量
+     * 創建單個刺（固定大小）
+     * @param x X坐標
+     * @param y Y坐標
      */
-    public Level createSpikesOnPlatform(double platformX, double platformY, int platformWidth, 
-                                       int spikeWidth, int spikeHeight, int spikeCount) {
-        // 计算刺之间的间距
-        double spacing = (double) platformWidth / spikeCount;
-        
-        for (int i = 0; i < spikeCount; i++) {
-            double spikeX = platformX + (spacing * i) + (spacing - spikeWidth) / 2;
-            double spikeY = platformY - spikeHeight; // 刺在平台上方
-            
-            createSpike(spikeX, spikeY, spikeWidth, spikeHeight);
-        }
-        
-        return this;
-    }
-
-    /**
-     * 创建单个刺
-     * @param x X坐标
-     * @param y Y坐标
-     * @param width 宽度
-     * @param height 高度
-     */
-    public Entity createSpike(double x, double y, int width, int height) {
-        SpawnData data = new SpawnData(x, y)
-                .put("width", width)
-                .put("height", height);
-        
-        Entity spike = FXGL.spawn("spike", data);
-        platforms.add(spike); // 将刺也加入到实体列表中，方便清理
-        return spike;
-    }
-
-    /**
-     * 创建带颜色的刺
-     * @param x X坐标
-     * @param y Y坐标
-     * @param width 宽度
-     * @param height 高度
-     * @param color 颜色
-     */
-    public Entity createSpike(double x, double y, int width, int height, Color color) {
-        SpawnData data = new SpawnData(x, y)
-                .put("width", width)
-                .put("height", height)
-                .put("color", color);
+    public Entity createSpike(double x, double y) {
+        SpawnData data = new SpawnData(x, y);
         
         Entity spike = FXGL.spawn("spike", data);
         platforms.add(spike);
@@ -192,45 +174,38 @@ public class Level {
     }
 
     /**
-     * 创建弓箭发射器
-     * @param x X坐标
-     * @param y Y坐标
-     * @param width 宽度
-     * @param height 高度
-     * @param direction 发射方向（"left", "right", "up", "down"）
+     * 在平台上創建多個刺
+     * @param platformX 平台的X坐標
+     * @param platformY 平台的Y坐標
+     * @param platformWidth 平台寬度
+     * @param spikeCount 刺的數量
      */
-    public Entity createArrowLauncher(double x, double y, int width, int height, String direction) {
-        SpawnData data = new SpawnData(x, y)
-                .put("width", width)
-                .put("height", height)
-                .put("direction", direction);
+    public Level createSpikesOnPlatform(double platformX, double platformY, int platformWidth, int spikeCount) {
+        double totalSpacing = platformWidth - (40 * spikeCount);
+        double spacing = totalSpacing / (spikeCount + 1);
         
-        Entity launcher = FXGL.spawn("launcher", data);
-        platforms.add(launcher); // 将发射器也加入到实体列表中，方便清理
-        return launcher;
+        for (int i = 0; i < spikeCount; i++) {
+            double spikeX = platformX + spacing + (i * (40 + spacing));
+            double spikeY = platformY - 30; // 刺的高度
+            
+            createSpike(spikeX, spikeY);
+        }
+        
+        return this;
     }
 
     /**
-     * 创建自定义发射器
-     * @param x X坐标
-     * @param y Y坐标
-     * @param width 宽度  
-     * @param height 高度
-     * @param direction 发射方向
-     * @param fireRate 发射频率（每秒几次）
-     * @param arrowSpeed 弓箭速度
-     * @param color 颜色
+     * 創建發射器（固定大小50x50）
+     * @param x X座標
+     * @param y Y座標
+     * @param direction 發射方向（"left", "right", "up", "down"）
+     * @param fireRate 發射頻率（秒）
+     * @param bulletSpeed 子彈速度
      */
-    public Entity createCustomArrowLauncher(double x, double y, int width, int height, 
-                                        String direction, double fireRate, 
-                                        double arrowSpeed, Color color) {
+    public Entity createLauncher(double x, double y, String direction, double fireRate) {
         SpawnData data = new SpawnData(x, y)
-                .put("width", width)
-                .put("height", height)
-                .put("direction", direction)
                 .put("fireRate", fireRate)
-                .put("arrowSpeed", arrowSpeed)
-                .put("color", color);
+                .put("direction", direction);
         
         Entity launcher = FXGL.spawn("launcher", data);
         platforms.add(launcher);
@@ -250,7 +225,58 @@ public class Level {
         return rope;
     }
 
-    // 修改清理方法，包含弓箭和发射器的清理
+    /**
+     * 創建彈跳床
+     * 
+     */
+    public Entity createBouncePlatform(int x, int y, double bounceHeight) {
+        SpawnData data = new SpawnData(x, y)
+            .put("width", 40)
+            .put("height", 40)
+            .put("bounce", -bounceHeight);
+
+        Entity bounce = FXGL.spawn("bounce", data);
+        platforms.add(bounce);
+        return bounce;
+    }
+
+    /**
+     * 創建會消失的平台
+     * @param x X座標
+     * @param y Y座標
+     * @param width 寬度
+     * @param height 高度
+     * @param disappearTime 消失所需時間（秒）
+     * @param reappearTime 重新出現所需時間（秒）
+     * @param color 平台顏色
+     */
+    public Entity createDisappearingPlatform(double x, double y, int width, int height, 
+                                           double disappearTime, double reappearTime, Color color) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height)
+                .put("disappearTime", disappearTime)
+                .put("reappearTime", reappearTime);
+        
+        if (color != null) {
+            data.put("color", color);
+        }
+        
+        Entity platform = FXGL.spawn("disappearing", data);
+        platforms.add(platform);
+        return platform;
+    }
+
+
+    public Entity createIcePlatform(double x, double y, int width, int height) {
+        SpawnData data = new SpawnData(x, y)
+                .put("width", width)
+                .put("height", height);
+        
+        Entity ice = FXGL.spawn("ice", data);
+        platforms.add(ice);
+        return ice;
+    }
     /**
      * 清除所有平台、刺、弓箭和发射器
      */
@@ -267,10 +293,12 @@ public class Level {
             .forEach(Entity::removeFromWorld);
         FXGL.getGameWorld().getEntitiesByType(EntityType.LAUNCHER)
             .forEach(Entity::removeFromWorld);
-        FXGL.getGameWorld().getEntitiesByType(EntityType.ARROW)
+        FXGL.getGameWorld().getEntitiesByType(EntityType.BULLET)
             .forEach(Entity::removeFromWorld);
         FXGL.getGameWorld().getEntitiesByType(EntityType.ROPE)
          .forEach(Entity::removeFromWorld);
+        FXGL.getGameWorld().getEntitiesByType(EntityType.BOUNCE)
+            .forEach(Entity::removeFromWorld);
     }
     
     /**
