@@ -1,52 +1,102 @@
-// 更新 LevelManager.java 添加弓箭发射器
 package com.doggybear.levels;
 
-import javafx.scene.paint.Color;
-
 public class LevelManager {
-    
     public static Level createLevel() {
-        Level level = new Level("關卡一");
-        level.setLavaRiseSpeed(5.0)
+        Level level = new Level();
+
+        level.setLavaRiseSpeed(3)
              .setInitialLavaHeight(100)
-             .setGoblinStart(500, 550);
+             .setGoblinStart(1450, 800)
+             .setGoblin2Start(1500, 800);
+             // initial 1: (1450, 800)
+             // initial 2: (1500, 800)
         
-        level.createInitialPlatform();
-        
-        // 创建平台
-        level.createPlatform(200, 500, 150);
-        level.createPlatform(450, 500, 150);
-        level.createPlatform(700, 500, 150);
-        
-        level.createPlatform(300, 400, 150);
-        level.createPlatform(600, 400, 150);
-        
-        level.createPlatform(200, 300, 150);
-        level.createPlatform(450, 300, 150);
-        level.createPlatform(700, 300, 150);
-        
-        level.createPlatform(300, 200, 150);
-        level.createPlatform(600, 200, 150);
-        
-        level.createMovingPlatform(400, 100, 100, 20, 100, 200);
+        level.createInitialPlatform(); // x: 1300, y: 850 
+        level.createPlayerRope(125);
 
-        // 添加刺
-        level.createSpikesOnPlatform(450, 500, 150, 20, 25, 2);
-        
-        // ===== 新增：添加弓箭发射器 =====
-        // 在左侧添加向右发射的发射器
-        // level.createArrowLauncher(50, 450, 30, 20, "right");
-        
-        // 在右侧添加向左发射的发射器
-        // level.createArrowLauncher(1000, 350, 30, 20, "left");
-        
-        // 在上方添加向下发射的发射器
-        // level.createArrowLauncher(400, 50, 20, 30, "down");
-        
-        // 创建一个快速发射的发射器（每0.5秒发射一次）
-        level.createCustomArrowLauncher(100, 250, 25, 25, "right", 2.0, 500, Color.RED);
+        // 第一排
+        level.createPlatform(1150, 850, 75, 100, 3);
+        level.createPlatform(1075, 750, 75, 500, 3);
 
-        level.createPlayerRope(150);
+        level.createFirePlatform(850, 800, 100, 500, 1.5, 2.5, 3);
+        level.createPlatform(650, 730, 100, 500, 3);
+        level.createPlatform(450, 660, 100, 500, 3);
+
+        // LEFT
+        level.createPlatform(200, 590, 150, 500, 3);
+        level.createSpike(200, 570);
+
+        level.createVericalMovingPlatform(50, 525, 100, 50, -200, 400, false);
+
+        // RIGHT
+        level.createDisappearingPlatform(450, 500, 100, 50, 3, 3);
+        level.createFirePlatform(700, 500, 100, 50, 2, 2.5, 2);
+
+        level.createBouncePlatform(950, 500, 500);
+        level.createBouncePlatform(1100, 500, 500);
+        level.createBouncePlatform(1250, 500, 500);
+
+        level.createVericalMovingPlatform(1400, 400, 100, 50, -100, 100, true);
+
+        // 第二排
+        // RIGHT - CONTINUE
+        level.createPlatform(1180, 300, 120, 50, 2);
+        level.createIcePlatform(1100, 200, 100, 150, 2);
+
+        level.createHorizontalMovingPlatform(850, 200, 150, 50, -100, 100, false);
+        
+        // LEFT - CONTINUE
+        level.createBouncePlatform(250, 200, 700);
+        level.createBouncePlatform(450, 200, 700);
+
+        // RELAY
+        level.createVericalMovingPlatform(600, 50, 100, 50, -125, 150, true);
+
+        // 第三排
+        // RIGHT
+        level.createPlatform(775, -100, 230, 50,2);
+        level.createSpike(875, -120);
+        level.createPlatform(1050, -170, 100, 50, 2);
+        
+        level.createFirePlatform(1200, -200, 150, 50, 1, 4, 1);
+        level.createFirePlatform(1430, -265, 150, 50, 2.5, 2.5, 1);
+        level.createPlatform(1245, -340, 50, 50, 1);
+        level.createFirePlatform(1000, -380, 150, 50, 3, 3.5, 1);
+
+        // LEFT
+        level.createIcePlatform(430, -100, 70, 70, 1);
+        level.createIcePlatform(270, -145, 60, 60, 1);
+        level.createIcePlatform(110, -190, 50, 50, 1);
+        
+        level.createBouncePlatform(0, -190, 1250);
+
+        level.createIcePlatform(210, -320, 100, 50, 2);
+        level.createIcePlatform(450, -380, 100, 50, 2);
+
+        // RELAY
+        level.createVericalMovingPlatform(725, -425, 100, 50, -150, 700, false);
+
+        level.createLauncher(120, -555, "right", 1.5);
+        level.createPlatform(120, -505, 50, 50, 1);
+        level.createLauncher(1480, -655, "left", 1.2);
+        level.createPlatform(1480, -605, 50, 50, 1);
+        level.createLauncher(120, -755, "right", 1.2);
+        level.createPlatform(120, -705, 50, 50, 1);
+        level.createLauncher(1480, -855, "left", 1.5);
+        level.createPlatform(1480, -805, 50, 50, 1);
+
+        // 第四排 RIGHT
+        level.createDisappearingPlatform(850, -1100, 200, 50, 3.5, 3.5);
+        level.createDisappearingPlatform(1150, -1150, 200, 50, 2, 1);
+
+        level.createHorizontalMovingPlatform(1450, -1220, 150, 50, -150, 800, false);
+
+        // LEFT
+        level.createDisappearingPlatform(450, -1220, 120, 50, 1, 2);
+        level.createDisappearingPlatform(250, -1280, 100, 50, 1, 2);
+
+        // END
+        level.createPlatform(0, -1350, 120, 50, 4);
         return level;
     }
 }
