@@ -5,6 +5,7 @@ import com.almasb.fxgl.app.GameSettings;
 import com.almasb.fxgl.input.UserAction;
 import com.doggybear.component.Goblin;
 import com.doggybear.controller.*;
+import com.doggybear.ui.FontManager;
 import com.doggybear.ui.GameOver;
 
 import javafx.scene.input.KeyCode;
@@ -14,7 +15,6 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 public class Main extends GameApplication {
     private GameController gameController;
     private PhysicsController physicsController;
-    private UIController uiController;
     private GameOver gameOver;
     
     @Override
@@ -24,6 +24,9 @@ public class Main extends GameApplication {
 
     @Override
     protected void initGame() {
+        // 初始化字型管理器
+        FontManager.initialize();
+        
         // 初始化遊戲控制器
         gameController = new GameController();
         gameController.initGame();
@@ -31,8 +34,12 @@ public class Main extends GameApplication {
         // 初始化物理控制器
         physicsController = new PhysicsController(this::showGameOver);
         
-        // 初始化UI控制器
-        uiController = new UIController(gameController.getLevel());
+    }
+    
+    private boolean canAcceptInput() {
+        return gameController != null && 
+               gameController.isGameStarted() && 
+               !gameController.isGameOver();
     }
     
     @Override
@@ -40,62 +47,102 @@ public class Main extends GameApplication {
         getInput().addAction(new UserAction("向右移動") {
             @Override
             protected void onAction() {
-                gameController.getGoblin().getComponent(Goblin.class).moveRight();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin() != null) {
+                    gameController.getGoblin().getComponent(Goblin.class).moveRight();
+                }
             }
 
             @Override
             protected void onActionEnd() {
-                gameController.getGoblin().getComponent(Goblin.class).stop();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin() != null) {
+                    gameController.getGoblin().getComponent(Goblin.class).stop();
+                }
             }
         }, KeyCode.D);
 
         getInput().addAction(new UserAction("向左移動") {
             @Override
             protected void onAction() {
-                gameController.getGoblin().getComponent(Goblin.class).moveLeft();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin() != null) {
+                    gameController.getGoblin().getComponent(Goblin.class).moveLeft();
+                }
             }
 
             @Override
             protected void onActionEnd() {
-                gameController.getGoblin().getComponent(Goblin.class).stop();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin() != null) {
+                    gameController.getGoblin().getComponent(Goblin.class).stop();
+                }
             }
         }, KeyCode.A);
 
         getInput().addAction(new UserAction("跳躍") {
             @Override
             protected void onActionBegin() {
-                gameController.getGoblin().getComponent(Goblin.class).jump();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin() != null) {
+                    gameController.getGoblin().getComponent(Goblin.class).jump();
+                }
             }
         }, KeyCode.SPACE);
 
         getInput().addAction(new UserAction("玩家2向右移動") {
             @Override
             protected void onAction() {
-                gameController.getGoblin2().getComponent(Goblin.class).moveRight();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin2() != null) {
+                    gameController.getGoblin2().getComponent(Goblin.class).moveRight();
+                }
             }
 
             @Override
             protected void onActionEnd() {
-                gameController.getGoblin2().getComponent(Goblin.class).stop();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin2() != null) {
+                    gameController.getGoblin2().getComponent(Goblin.class).stop();
+                }
             }
         }, KeyCode.RIGHT);
 
         getInput().addAction(new UserAction("玩家2向左移動") {
             @Override
             protected void onAction() {
-                gameController.getGoblin2().getComponent(Goblin.class).moveLeft();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin2() != null) {
+                    gameController.getGoblin2().getComponent(Goblin.class).moveLeft();
+                }
             }
 
             @Override
             protected void onActionEnd() {
-                gameController.getGoblin2().getComponent(Goblin.class).stop();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin2() != null) {
+                    gameController.getGoblin2().getComponent(Goblin.class).stop();
+                }
             }
         }, KeyCode.LEFT);
 
         getInput().addAction(new UserAction("玩家2跳躍") {
             @Override
             protected void onActionBegin() {
-                gameController.getGoblin2().getComponent(Goblin.class).jump();
+                if (!canAcceptInput()) return;
+                
+                if (gameController.getGoblin2() != null) {
+                    gameController.getGoblin2().getComponent(Goblin.class).jump();
+                }
             }
         }, KeyCode.ENTER);
     }
@@ -106,15 +153,14 @@ public class Main extends GameApplication {
     }
     
     @Override
-    protected void initUI() {
-        uiController.initUI();
-    }
-    
-    @Override
     protected void onUpdate(double tpf) {
         gameController.update(tpf);
-        if (gameController.checkGameOver()) {
-            showGameOver();
+        
+        // 只有在遊戲真正開始且未結束時才檢查遊戲結束條件
+        if (gameController.isGameStarted() && !gameController.isGameOver()) {
+            if (gameController.checkGameOver()) {
+                showGameOver();
+            }
         }
         
         gameController.updateViewport();
@@ -124,10 +170,15 @@ public class Main extends GameApplication {
         if (gameController.isGameOver()) return;
         
         gameController.setGameOver(true);
-        gameController.getTimer().stop();
+        
+        // 停止計時器
+        if (gameController.getTimer() != null) {
+            gameController.getTimer().stop();
+        }
         
         // 記錄最終存活時間
-        int finalSurvivalTime = gameController.getTimer().getElapsedSeconds();
+        int finalSurvivalTime = gameController.getTimer() != null ? 
+            gameController.getTimer().getElapsedSeconds() : 0;
         
         // 創建遊戲結束畫面
         gameOver = new GameOver(finalSurvivalTime, new GameOver.GameOverCallback() {

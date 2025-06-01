@@ -2,25 +2,29 @@ package com.doggybear.component;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.component.Component;
+import com.doggybear.ui.FontManager;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
-/**
- * 計時器組件，用於計算玩家存活時間
- */
 public class Timer extends Component {
     
     private double elapsedTime = 0;
     private Text timerText;
-    private boolean isActive = true;
+    private boolean isActive = false;
     
     public Timer() {
-        timerText = new Text("時間: 0秒");
+        timerText = new Text("時間: 0 秒");
         timerText.setFill(Color.WHITE);
-        timerText.setStroke(Color.BLACK);
-        timerText.setStrokeWidth(1);
-        timerText.setFont(Font.font(24));
+        
+        // 使用FontManager載入字型
+        try {
+            Font customFont = FontManager.getFont(FontManager.FontType.BOLD);
+            timerText.setFont(customFont);
+        } catch (Exception e) {
+            System.err.println("無法載入計時器字型，使用預設字型: " + e.getMessage());
+            timerText.setFont(Font.font(24));
+        }
     }
     
     @Override
@@ -42,7 +46,14 @@ public class Timer extends Component {
         
         // 更新顯示文字，只顯示整數秒
         int seconds = (int) elapsedTime;
-        timerText.setText("時間: " + seconds + "秒");
+        timerText.setText("時間: " + seconds + " 秒");
+    }
+    
+    /**
+     * 開始計時
+     */
+    public void start() {
+        isActive = true;
     }
     
     /**
@@ -53,11 +64,20 @@ public class Timer extends Component {
     }
     
     /**
-     * 重置計時器
+     * 重置計時器並開始計時
      */
     public void reset() {
         elapsedTime = 0;
         isActive = true;
+        timerText.setText("時間: 0 秒");
+    }
+    
+    /**
+     * 重置計時器但不開始計時
+     */
+    public void resetWithoutStart() {
+        elapsedTime = 0;
+        isActive = false;
         timerText.setText("時間: 0秒");
     }
     
@@ -69,11 +89,22 @@ public class Timer extends Component {
         return (int) elapsedTime;
     }
     
+    public double getElapsedTime() {
+        return elapsedTime;
+    }
+    
     /**
-     * 當組件被移除時，同時移除UI元素
+     * 檢查計時器是否正在運行
+     * @return 是否正在計時
      */
+    public boolean isActive() {
+        return isActive;
+    }
+    
     @Override
     public void onRemoved() {
-        FXGL.getGameScene().removeUINode(timerText);
+        if (timerText != null) {
+            FXGL.getGameScene().removeUINode(timerText);
+        }
     }
 }

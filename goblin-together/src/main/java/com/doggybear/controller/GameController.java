@@ -12,6 +12,7 @@ import com.doggybear.factory.FactoryManager;
 import com.doggybear.levels.Level;
 import com.doggybear.levels.LevelManager;
 import com.doggybear.ui.GameFinish;
+import com.doggybear.ui.IntroSequence;
 
 import javafx.scene.paint.Color;
 
@@ -26,6 +27,7 @@ public class GameController {
     private Timer timer;
     private Entity lava;
     private Level level;
+    private IntroSequence introSequence;
     
     // 遊戲狀態
     private double lavaHeight;
@@ -33,12 +35,14 @@ public class GameController {
     private double lavaY;
     private double timeSinceLastLavaRise = 0;
     private boolean isGameOver = false;
+    private boolean gameStarted = false;
     private double gameStartTime;
 
     public void initGame() {
         cleanup();
         
         isGameOver = false;
+        gameStarted = false; // 遊戲尚未開始
         gameStartTime = FXGL.getGameTimer().getNow();
 
         FactoryManager.addAllFactories(getGameWorld());
@@ -63,6 +67,8 @@ public class GameController {
         
         timer = new Timer();
         goblin.addComponent(timer);
+        // 初始時停止計時器
+        timer.stop();
         
         // 從 Settings 獲取預設值
         lavaHeight = level.getInitialLavaHeight();
@@ -78,9 +84,52 @@ public class GameController {
         // 確保兩個玩家都在畫面中
         getGameScene().getViewport().setBounds(0, -Settings.WORLD_HEIGHT, getAppWidth(), Settings.WORLD_HEIGHT + getAppHeight());
         
+        // 播放開場動畫
+        startIntroSequence();
+    }
+
+    /**
+     * 播放開場動畫序列
+     */
+    private void startIntroSequence() {
+        introSequence = new IntroSequence();
+        
+        double finishX = 10 + 30; // 終點圓心X座標
+        double finishY = -1420 + 30; // 終點圓心Y座標
+        
+        // 玩家起始位置中心點
+        double playerCenterX = (level.getGoblinStartX() + level.getGoblin2StartX()) / 2 + 25;
+        double playerCenterY = (level.getGoblinStartY() + level.getGoblin2StartY()) / 2 + 25;
+        
+        System.out.println("開始播放開場動畫");
+        System.out.println(String.format("終點位置: (%.1f, %.1f)", finishX, finishY));
+        System.out.println(String.format("玩家位置: (%.1f, %.1f)", playerCenterX, playerCenterY));
+        
+        // 播放開場動畫
+        introSequence.playIntroSequence(finishX, finishY, playerCenterX, playerCenterY, 
+            new IntroSequence.IntroCompleteCallback() {
+                @Override
+                public void onIntroComplete() {
+                    startActualGame();
+                }
+            });
+    }
+    
+    private void startActualGame() {
+        gameStarted = true;
+        
+        // 重新記錄遊戲開始時間
+        gameStartTime = FXGL.getGameTimer().getNow();
+        
+        // 啟動計時器
+        if (timer != null) {
+            timer.reset();
+        }
+        
         // 動態調整視角以確保兩個玩家都在畫面中
         updateViewport();
     }
+    
     private void createStretchedBackgroundEntity() {
         double bgWidth = FXGL.getAppWidth() * 1.1;
         double bgHeight = 3200;
@@ -97,11 +146,16 @@ public class GameController {
         
         background.getViewComponent().addChild(bgTexture);
     }
+    
     /**
      * 清理舊的遊戲狀態
      */
     private void cleanup() {
-        // 清理舊的實體
+        if (introSequence != null) {
+            introSequence.stopIntro();
+            introSequence = null;
+        }
+        
         goblin = null;
         goblin2 = null;
         lava = null;
@@ -110,7 +164,10 @@ public class GameController {
     }
      
     public void update(double tpf) {
-        // 如果遊戲已經結束 不再更新岩漿 Goblin 禁止移動
+        if (!gameStarted) {
+            return;
+        }
+        
         if (isGameOver) {
             stopGoblins();
             return;
@@ -119,11 +176,9 @@ public class GameController {
         // 更新經過的時間
         timeSinceLastLavaRise += tpf;
         
-        // 当计时器超过设定的间隔时间时，上升岩浆
         if (timeSinceLastLavaRise > lavaRiseInterval) {
             lavaHeight += 5; // 每次上升5像素
             
-            // 重新设置岩浆的Y坐标和高度
             if (lava != null && lava.isActive()) {
                 lava.removeFromWorld();
             }
@@ -131,7 +186,7 @@ public class GameController {
                 .put("width", (int)getAppWidth())
                 .put("height", (int)lavaHeight));
             
-            timeSinceLastLavaRise = 0; // 重置计时器
+            timeSinceLastLavaRise = 0;
         }
     }
     
@@ -166,7 +221,6 @@ public class GameController {
     }
     
     private void createFinishLine() {
-        // 創建完成回調
         FinishCircle.FinishCallback finishCallback = new FinishCircle.FinishCallback() {
             @Override
             public void onGameFinish(double totalTime) {
@@ -174,16 +228,12 @@ public class GameController {
                 if (timer != null) {
                     timer.stop();
                 }
-                
-                // 設定遊戲完成狀態
+
                 setGameOver(true);
-                
-                // 顯示完成畫面
                 showGameFinish(totalTime);
             }
         };
         
-        // 在關卡最高點創建終點 - 根據您的關卡設計調整位置
         level.createFinishCircle(
             10, 
             -1420,
@@ -231,6 +281,11 @@ public class GameController {
                 return;
             }
             
+            // 如果開場動畫正在播放，不要更新視角
+            if (introSequence != null && introSequence.isPlaying()) {
+                return;
+            }
+            
             // 計算兩個哥布林的中心點作為視角中心
             double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25; // 加上一半的寬度(50/2)
             double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25; // 加上一半的高度(50/2)
@@ -253,6 +308,7 @@ public class GameController {
         }
     }
     
+    // Getters
     public Entity getGoblin() { 
         return (goblin != null && goblin.isActive()) ? goblin : null; 
     }
@@ -264,6 +320,7 @@ public class GameController {
     public Timer getTimer() { return timer; }
     public Level getLevel() { return level; }
     public boolean isGameOver() { return isGameOver; }
+    public boolean isGameStarted() { return gameStarted; }
     
     // Setters
     public void setGameOver(boolean gameOver) { this.isGameOver = gameOver; }

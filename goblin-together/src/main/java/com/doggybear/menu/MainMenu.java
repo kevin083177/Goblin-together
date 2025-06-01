@@ -3,12 +3,15 @@ package com.doggybear.menu;
 import com.almasb.fxgl.app.scene.FXGLMenu;
 import com.almasb.fxgl.app.scene.MenuType;
 import com.almasb.fxgl.dsl.FXGL;
+import com.doggybear.ui.FontManager;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
 public class MainMenu extends FXGLMenu {
@@ -16,7 +19,6 @@ public class MainMenu extends FXGLMenu {
     public MainMenu() {
         super(MenuType.MAIN_MENU);
         
-        // 加载背景图片（确保路径正确）
         Image bgImage = FXGL.image("background.png");
         BackgroundImage background = new BackgroundImage(
                 bgImage,
@@ -26,48 +28,37 @@ public class MainMenu extends FXGLMenu {
                 new BackgroundSize(100, 100, true, true, true, true)
         );
         
-        // 创建主容器并设置背景
         StackPane root = new StackPane();
         root.setBackground(new Background(background));
         root.setPrefSize(getAppWidth(), getAppHeight());
         
-        // 添加半透明遮罩层增强文字可读性
         Rectangle overlay = new Rectangle(getAppWidth(), getAppHeight());
         overlay.setFill(Color.color(0, 0, 0, 0.1));
         root.getChildren().add(overlay);
         
-        // 创建内容容器（垂直布局）
         VBox contentBox = new VBox(40);
         contentBox.setAlignment(Pos.CENTER);
-        contentBox.setTranslateY(-50);  // 轻微上移
+        contentBox.setTranslateY(75);
         
-        // 创建按钮容器（水平居中）
         VBox buttonContainer = new VBox(30);
-        buttonContainer.setAlignment(Pos.BASELINE_CENTER);
+        buttonContainer.setAlignment(Pos.CENTER);
         
-        // 创建按钮
-        Button btnLocalCoop = createButton("單機合作", "#4CAF50");
-        Button btnOnlineCoop = createButton("線上合作", "#F3C5A4");
-
-        Button btnControls = createButton("操作說明", "#2196F3");
-        Button btnExit = createButton("退出", "#F44336");
+        Button btnLocalCoop = createImageButton("localButton.png", "單機合作");
+        Button btnOnlineCoop = createImageButton("onlineButton.png", "線上合作");
+        Button btnControls = createImageButton("helpButton.png", "操作說明");
+        Button btnExit = createImageButton("exitButton.png", "退出");
         
-        // 设置按钮事件
         btnLocalCoop.setOnAction(e -> fireNewGame());
         btnOnlineCoop.setOnAction(null);
         btnControls.setOnAction(e -> showControls());
         btnExit.setOnAction(e -> fireExit());
         
-        // 添加按钮到容器
         buttonContainer.getChildren().addAll(btnLocalCoop, btnOnlineCoop, btnControls, btnExit);
         
-        // 添加所有元素到内容容器
         contentBox.getChildren().addAll(buttonContainer);
         
-        // 添加内容容器到根容器
         root.getChildren().add(contentBox);
         
-        // 设置到场景
         getContentRoot().getChildren().add(root);
     }
     
@@ -94,7 +85,7 @@ public class MainMenu extends FXGLMenu {
         var objective = new Text("目標: 逃避不斷上升的岩漿，存活越久越好！");
         objective.setFill(Color.WHITE);
         
-        var closeBtn = createButton("關閉", "#FF9800");
+        var closeBtn = createTextButton("關閉", "#FF9800");
         closeBtn.setPrefWidth(100);
         closeBtn.setOnAction(e -> {
             getContentRoot().getChildren().remove(controlsPane);
@@ -109,11 +100,52 @@ public class MainMenu extends FXGLMenu {
         getContentRoot().getChildren().add(controlsPane);
     }
     
-    private Button createButton(String text, String colorHex) {
+    private Button createImageButton(String imagePath, String buttonText) {
+        Button button = new Button();
+        button.setPrefSize(240, 80);
+        
+        StackPane buttonContent = new StackPane();
+        
+        Image buttonImage = FXGL.image(imagePath);
+        ImageView imageView = new ImageView(buttonImage);
+        imageView.setFitWidth(240);
+        imageView.setFitHeight(80);
+        imageView.setPreserveRatio(false);
+        
+        Text text = new Text(buttonText);
+        Font buttonFont = FontManager.getFont(FontManager.FontType.REGULAR);
+        text.setFont(buttonFont);
+        text.setFill(Color.WHITE);
+        text.setStroke(Color.WHITE);
+        text.setTranslateY(-5);
+        
+        // 將圖片和文字疊放在StackPane中
+        buttonContent.getChildren().addAll(imageView, text);
+        
+        button.setGraphic(buttonContent);
+        
+        // 移除按鈕的預設背景和邊框
+        button.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        
+        // 滑鼠懸停效果 - 放大
+        button.setOnMouseEntered(e -> {
+            button.setScaleX(1.1);
+            button.setScaleY(1.1);
+        });
+        
+        // 滑鼠移出效果 - 恢復原大小
+        button.setOnMouseExited(e -> {
+            button.setScaleX(1.0);
+            button.setScaleY(1.0);
+        });
+        
+        return button;
+    }
+    
+    private Button createTextButton(String text, String colorHex) {
         Button button = new Button(text);
         button.setPrefSize(180, 60);
         
-        // 现代扁平化按钮样式
         button.setStyle(String.format(
             "-fx-font-size: 20px;" +
             "-fx-font-weight: bold;" +
@@ -125,7 +157,6 @@ public class MainMenu extends FXGLMenu {
             colorHex
         ));
         
-        // 悬停效果
         button.setOnMouseEntered(e -> button.setStyle(String.format(
             "-fx-font-size: 20px;" +
             "-fx-font-weight: bold;" +
@@ -137,7 +168,6 @@ public class MainMenu extends FXGLMenu {
             colorHex
         )));
         
-        // 鼠标移出效果
         button.setOnMouseExited(e -> button.setStyle(String.format(
             "-fx-font-size: 20px;" +
             "-fx-font-weight: bold;" +
