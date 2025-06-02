@@ -4,6 +4,7 @@ import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.physics.PhysicsComponent;
 import com.almasb.fxgl.texture.Texture;
+import com.doggybear.GameData;
 import com.doggybear.Settings;
 import com.doggybear.component.FinishCircle;
 import com.doggybear.component.Goblin;
@@ -54,15 +55,18 @@ public class GameController {
 
         createStretchedBackgroundEntity();
         
-        // 生成哥布林
-        goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
-        goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
+        boolean isHost = GameData.isHost();
         
-        if (goblin.getComponent(Goblin.class) == null) {
-            System.err.println("Warning: goblin entity doesn't have Goblin component!");
-        }
-        if (goblin2.getComponent(Goblin.class) == null) {
-            System.err.println("Warning: goblin2 entity doesn't have Goblin component!");
+        if (isHost) {
+            // 主机控制玩家1
+            goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
+            // 客户端控制玩家2
+            goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
+        } else {
+            // 客户端控制玩家1
+            goblin = spawn("goblin", level.getGoblin2StartX(), level.getGoblin2StartY());
+            // 主机控制玩家2
+            goblin2 = spawn("goblin2", level.getGoblinStartX(), level.getGoblinStartY());
         }
         
         timer = new Timer();

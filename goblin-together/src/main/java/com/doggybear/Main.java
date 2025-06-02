@@ -2,9 +2,13 @@ package com.doggybear;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
+import com.almasb.fxgl.dsl.FXGL;
+import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.input.UserAction;
+import com.almasb.fxgl.physics.PhysicsComponent;
 import com.doggybear.component.Goblin;
 import com.doggybear.controller.*;
+import com.doggybear.network.NetworkManager;
 import com.doggybear.ui.FontManager;
 import com.doggybear.ui.GameOver;
 
@@ -12,11 +16,16 @@ import javafx.scene.input.KeyCode;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
+import java.net.Socket;
+
 public class Main extends GameApplication {
     private GameController gameController;
     private PhysicsController physicsController;
     private GameOver gameOver;
     
+    private NetworkManager networkManager;
+    private boolean isHost;
+
     @Override
     protected void initSettings(GameSettings settings) {
         Settings.initSettings(settings);
@@ -24,6 +33,14 @@ public class Main extends GameApplication {
 
     @Override
     protected void initGame() {
+        isHost = GameData.isHost();
+        Socket socket = GameData.getSocket();
+        
+        if (socket != null) {
+            networkManager = new NetworkManager(socket, isHost);
+            networkManager.start();
+        }
+
         // 初始化字型管理器
         FontManager.initialize();
         
@@ -41,8 +58,12 @@ public class Main extends GameApplication {
                gameController.isGameStarted() && 
                !gameController.isGameOver();
     }
-    
-    @Override
+
+    private boolean isOnline() {
+        return networkManager != null;
+    }
+
+     @Override
     protected void initInput() {
         getInput().addAction(new UserAction("向右移動") {
             @Override
@@ -156,6 +177,10 @@ public class Main extends GameApplication {
     protected void onUpdate(double tpf) {
         gameController.update(tpf);
         
+        if (networkManager != null) {
+            processNetworkMessages();
+        }
+
         // 只有在遊戲真正開始且未結束時才檢查遊戲結束條件
         if (gameController.isGameStarted() && !gameController.isGameOver()) {
             if (gameController.checkGameOver()) {
@@ -164,6 +189,93 @@ public class Main extends GameApplication {
         }
         
         gameController.updateViewport();
+
+        if (isOnline() && gameController.isGameStarted() && !gameController.isGameOver()) {
+            syncPlayerPositions();
+        }
+    }
+
+    private void processNetworkMessages() {
+        String message;
+        while ((message = networkManager.pollMessage()) != null) {
+            System.out.println("收到网络消息: " + message);
+            
+            if (message.startsWith("POS:")) {
+                // 处理位置更新
+                handlePositionUpdate(message);
+            } else if ("START_GAME".equals(message)) {
+                // 客户端收到游戏开始命令
+                if (!isHost) {
+                    FXGL.getGameController().startNewGame();
+                }
+            } else if ("CLIENT_READY".equals(message)) {
+                // 主机收到客户端就绪通知
+                if (isHost) {
+                    // 可以在这里做额外处理
+                }
+            }
+        }
+    }
+
+    private void handlePositionUpdate(String message) {
+        // 格式: POS:player:x:y:velocityX:velocityY
+        String[] parts = message.split(":");
+        if (parts.length < 6) return;
+        
+        try {
+            int player = Integer.parseInt(parts[1]);
+            double x = Double.parseDouble(parts[2]);
+            double y = Double.parseDouble(parts[3]);
+            double velocityX = Double.parseDouble(parts[4]);
+            double velocityY = Double.parseDouble(parts[5]);
+            
+            Entity target = (player == 1) ? gameController.getGoblin() : gameController.getGoblin2();
+            if (target != null) {
+                target.setPosition(x, y);
+                PhysicsComponent physics = target.getComponent(PhysicsComponent.class);
+                if (physics != null) {
+                    physics.setVelocityX(velocityX);
+                    physics.setVelocityY(velocityY);
+                }
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("位置更新格式错误: " + message);
+        }
+    }
+    
+    private void syncPlayerPositions() {
+        Entity goblin = gameController.getGoblin();
+        Entity goblin2 = gameController.getGoblin2();
+        
+        if (goblin == null || goblin2 == null) return;
+        
+        if (isHost) {
+            sendPlayerPosition(1, goblin);
+        } else {
+            sendPlayerPosition(2, goblin2);
+        }
+    }
+    
+    private void sendPlayerPosition(int playerId, Entity entity) {
+        if (entity == null || networkManager == null) return;
+        
+        PhysicsComponent physics = entity.getComponent(PhysicsComponent.class);
+        if (physics == null) return;
+        
+        String message = String.format("POS:%d:%.2f:%.2f:%.2f:%.2f",
+            playerId,
+            entity.getX(),
+            entity.getY(),
+            physics.getVelocityX(),
+            physics.getVelocityY());
+        
+        networkManager.sendMessage(message);
+    }
+    
+    public void onDestroy() {
+        if (networkManager != null) {
+            networkManager.stop();
+        }
     }
 
     private void showGameOver() {

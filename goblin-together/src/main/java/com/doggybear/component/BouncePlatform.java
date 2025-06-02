@@ -7,9 +7,6 @@ import com.almasb.fxgl.physics.PhysicsComponent;
 import com.almasb.fxgl.texture.Texture;
 import com.doggybear.type.EntityType;
 
-import javafx.scene.shape.Rectangle;
-import javafx.scene.paint.Color;
-
 /**
  * 彈跳平台組件：當玩家碰到平台時，會施加一個向上的速度。
  */
