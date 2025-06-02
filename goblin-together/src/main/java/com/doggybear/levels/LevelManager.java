@@ -18,7 +18,7 @@ public class LevelManager {
         level.createPlatform(1150, 850, 75, 100, 3);
         level.createPlatform(1075, 750, 75, 500, 3);
 
-        level.createFirePlatform(850, 800, 100, 500, 1.5, 2.5, 3);
+        level.createPlatform(850, 800, 100, 500, 3);
         level.createPlatform(650, 730, 100, 500, 3);
         level.createPlatform(450, 660, 100, 500, 3);
 
@@ -30,7 +30,7 @@ public class LevelManager {
 
         // RIGHT
         level.createDisappearingPlatform(450, 500, 100, 50, 3, 3);
-        level.createFirePlatform(700, 500, 100, 50, 2, 2.5, 2);
+        level.createPlatform(700, 500, 100, 50, 2);
 
         level.createBouncePlatform(950, 500, 500);
         level.createBouncePlatform(1100, 500, 500);
