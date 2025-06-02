@@ -49,7 +49,7 @@ public class FontManager {
         
         if (loadedFonts.containsKey(key)) {
             if (debugMode) {
-                System.out.println("Using cached font: " + key);
+                // System.out.println("Using cached font: " + key);
             }
             return loadedFonts.get(key);
         }
@@ -196,7 +196,7 @@ public class FontManager {
                 Font font = Font.font(fontFamily, FontWeight.BOLD, size);
                 if (font != null && !font.getFamily().equals("System")) {
                     if (debugMode) {
-                        System.out.println("Using fallback font: " + fontFamily + " (size: " + size + ")");
+                        // System.out.println("Using fallback font: " + fontFamily + " (size: " + size + ")");
                     }
                     return font;
                 }

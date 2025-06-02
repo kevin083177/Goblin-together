@@ -1,7 +1,6 @@
 package com.doggybear.ui;
 
 import com.almasb.fxgl.dsl.FXGL;
-import com.doggybear.ui.FontManager;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -22,7 +21,7 @@ public class IntroSequence {
     private Text instructionText;
     private Text subText;
     private Rectangle textBackground;
-    private StackPane textContainer; // 改為 StackPane 來正確疊加背景和文字
+    private StackPane textContainer;
     private Timeline introTimeline;
     private boolean isPlaying = false;
     
