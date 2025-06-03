@@ -57,6 +57,10 @@ public class NetworkManager {
             }
             
             System.out.println("NetworkManager 開始接收消息...");
+            System.out.println("  Socket狀態: connected=" + socket.isConnected() + ", closed=" + socket.isClosed());
+            System.out.println("  BufferedReader狀態: " + (in != null ? "已初始化" : "null"));
+            System.out.println("  身份: " + (isHost ? "主機" : "客戶端"));
+            
             String message;
             
             while (running.get() && !socket.isClosed()) {
@@ -70,7 +74,8 @@ public class NetworkManager {
                     
                     // 將消息加入隊列
                     messageQueue.offer(message);
-                    System.out.println("NetworkManager 收到消息: " + message);
+                    System.out.println("NetworkManager 收到並入隊消息: " + message);
+                    System.out.println("  當前隊列大小: " + messageQueue.size());
                     
                 } catch (IOException e) {
                     if (running.get()) {
@@ -86,7 +91,7 @@ public class NetworkManager {
         } finally {
             System.out.println("NetworkManager 接收線程結束");
         }
-    }
+}
 
     public String pollMessage() {
         return messageQueue.poll();
@@ -95,9 +100,12 @@ public class NetworkManager {
     public void sendMessage(String message) {
         if (out != null && !socket.isClosed()) {
             out.println(message);
-            System.out.println("NetworkManager 發送消息: " + message);
+            out.flush(); // 確保消息立即發送
+            System.out.println("NetworkManager 發送消息: " + message + " (身份: " + (isHost ? "主機" : "客戶端") + ")");
         } else {
             System.err.println("NetworkManager 無法發送消息: 連接無效");
+            System.err.println("  out: " + (out != null ? "存在" : "null"));
+            System.err.println("  socket: " + (socket != null ? ("closed=" + socket.isClosed()) : "null"));
         }
     }
 

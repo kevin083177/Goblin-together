@@ -155,7 +155,7 @@ public class GameController {
             });
     }
     
-   private void createPlayers() {
+    private void createPlayers() {
         try {
             System.out.println("開始創建玩家角色");
             System.out.println("  遊戲模式: " + (isOnlineMode ? "線上" : "單機"));
@@ -169,6 +169,19 @@ public class GameController {
             System.out.println("  Goblin (玩家1) 位置: (" + level.getGoblinStartX() + ", " + level.getGoblinStartY() + ") - " + (goblin != null ? "成功" : "失敗"));
             System.out.println("  Goblin2 (玩家2) 位置: (" + level.getGoblin2StartX() + ", " + level.getGoblin2StartY() + ") - " + (goblin2 != null ? "成功" : "失敗"));
             
+            // 驗證實體創建
+            if (goblin == null) {
+                System.err.println("錯誤：goblin創建失敗！");
+            } else {
+                System.out.println("  Goblin實體ID: " + goblin.toString());
+            }
+            
+            if (goblin2 == null) {
+                System.err.println("錯誤：goblin2創建失敗！");
+            } else {
+                System.out.println("  Goblin2實體ID: " + goblin2.toString());
+            }
+            
             if (isOnlineMode) {
                 if (isHost) {
                     System.out.println("主機控制: goblin (玩家1)");
@@ -179,6 +192,13 @@ public class GameController {
                 System.out.println("單機模式: 玩家1控制goblin, 玩家2控制goblin2");
             }
             
+            // 驗證getGoblin2()方法是否正常工作
+            Entity testGoblin2 = getGoblin2();
+            System.out.println("  getGoblin2()測試: " + (testGoblin2 != null ? "成功" : "失敗"));
+            if (testGoblin2 != null) {
+                System.out.println("  getGoblin2()返回實體ID: " + testGoblin2.toString());
+            }
+            
         } catch (Exception e) {
             System.err.println("創建玩家角色失敗: " + e.getMessage());
             e.printStackTrace();
@@ -187,21 +207,43 @@ public class GameController {
     }
 
     public void startActualGame() {
+        System.out.println("=== GameController.startActualGame 開始 ===");
+        System.out.println("當前遊戲狀態:");
+        System.out.println("  gameStarted: " + gameStarted);
+        System.out.println("  isGameOver: " + isGameOver);
+        System.out.println("  線上模式: " + isOnlineMode);
+        System.out.println("  主機: " + isHost);
+        
+        if (gameStarted) {
+            System.out.println("遊戲已經開始，忽略重複調用");
+            return;
+        }
+        
         gameStarted = true;
         gameStartTime = FXGL.getGameTimer().getNow();
+        
+        System.out.println("設置 gameStarted = true");
         
         // 重置並啟動計時器
         if (timer != null) {
             timer.reset();
+            System.out.println("計時器已重置並啟動");
+        } else {
+            System.err.println("警告：timer為null");
         }
         
         // 確保岩漿從相同高度開始
         lavaHeight = level.getInitialLavaHeight();
         timeSinceLastLavaRise = 0;
         
+        System.out.println("岩漿設置完成 - 初始高度: " + lavaHeight);
+        
         // 更新視角
         updateViewport();
+        
+        System.out.println("=== GameController.startActualGame 完成 ===");
     }
+
     
     private void createStretchedBackgroundEntity() {
         double bgWidth = FXGL.getAppWidth() * 1.1;

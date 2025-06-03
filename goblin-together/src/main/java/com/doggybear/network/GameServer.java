@@ -77,11 +77,25 @@ public class GameServer {
      * 發送遊戲開始消息給客戶端
      */
     public void sendGameStart() {
+        System.out.println("=== GameServer.sendGameStart() ===");
+        System.out.println("clientOut狀態: " + (clientOut != null ? "存在" : "null"));
+        System.out.println("連接狀態: " + isConnected());
+        System.out.println("clientSocket狀態: " + (clientSocket != null ? ("connected=" + clientSocket.isConnected() + ", closed=" + clientSocket.isClosed()) : "null"));
+        
         if (clientOut != null && isConnected()) {
             System.out.println("發送GAME_START消息給客戶端");
             clientOut.println("GAME_START");
+            clientOut.flush(); // 確保消息立即發送
+            System.out.println("GAME_START消息已發送並刷新");
         } else {
-            System.err.println("無法發送遊戲開始消息：客戶端未連接");
+            System.err.println("無法發送遊戲開始消息：");
+            System.err.println("  clientOut: " + (clientOut != null ? "存在" : "null"));
+            System.err.println("  isConnected: " + isConnected());
+            System.err.println("  clientSocket: " + (clientSocket != null ? "存在" : "null"));
+            if (clientSocket != null) {
+                System.err.println("  socket.isClosed: " + clientSocket.isClosed());
+                System.err.println("  socket.isConnected: " + clientSocket.isConnected());
+            }
         }
     }
     
@@ -95,15 +109,17 @@ public class GameServer {
         try {
             String inputLine;
             while (running && (inputLine = clientIn.readLine()) != null) {
-                System.out.println("收到客戶端消息: " + inputLine);
+                System.out.println("GameServer收到客戶端消息: " + inputLine);
                 
                 if ("CLIENT_READY".equals(inputLine)) {
                     System.out.println("客戶端已準備就緒");
                 } else if ("PING".equals(inputLine)) {
                     // 心跳檢測
                     clientOut.println("PONG");
+                    System.out.println("回應客戶端PING");
+                } else {
+                    System.out.println("處理其他客戶端消息: " + inputLine);
                 }
-                // 其他消息可以在這裡處理
             }
         } catch (IOException e) {
             if (running) {
@@ -198,5 +214,9 @@ public class GameServer {
         clientOut = null;
         clientIn = null;
         return transferred;
+    }
+
+    public boolean isSocketTransferred() {
+        return clientSocket != null;
     }
 }
