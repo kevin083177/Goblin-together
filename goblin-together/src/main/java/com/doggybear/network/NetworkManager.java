@@ -17,6 +17,11 @@ public class NetworkManager {
     private Thread receiveThread;
     private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
     private final AtomicBoolean running = new AtomicBoolean(true);
+    
+    // *** 新增：消息統計和節流 ***
+    private long messageCount = 0;
+    private long lastStatsTime = System.currentTimeMillis();
+    private static final boolean DEBUG_MESSAGES = false; // 控制是否輸出調試信息
 
     public NetworkManager(Socket socket, boolean isHost) {
         this.socket = socket;
@@ -56,10 +61,12 @@ public class NetworkManager {
                 return;
             }
             
-            System.out.println("NetworkManager 開始接收消息...");
-            System.out.println("  Socket狀態: connected=" + socket.isConnected() + ", closed=" + socket.isClosed());
-            System.out.println("  BufferedReader狀態: " + (in != null ? "已初始化" : "null"));
-            System.out.println("  身份: " + (isHost ? "主機" : "客戶端"));
+            if (DEBUG_MESSAGES) {
+                System.out.println("NetworkManager 開始接收消息...");
+                System.out.println("  Socket狀態: connected=" + socket.isConnected() + ", closed=" + socket.isClosed());
+                System.out.println("  BufferedReader狀態: " + (in != null ? "已初始化" : "null"));
+                System.out.println("  身份: " + (isHost ? "主機" : "客戶端"));
+            }
             
             String message;
             
@@ -68,14 +75,30 @@ public class NetworkManager {
                     message = in.readLine();
                     
                     if (message == null) {
-                        System.out.println("NetworkManager: 連接已斷開 (收到 null)");
+                        if (DEBUG_MESSAGES) {
+                            System.out.println("NetworkManager: 連接已斷開 (收到 null)");
+                        }
                         break;
                     }
                     
                     // 將消息加入隊列
                     messageQueue.offer(message);
-                    System.out.println("NetworkManager 收到並入隊消息: " + message);
-                    System.out.println("  當前隊列大小: " + messageQueue.size());
+                    messageCount++;
+                    
+                    // *** 修改：減少輸出頻率，只輸出重要消息 ***
+                    if (shouldLogMessage(message)) {
+                        System.out.println("NetworkManager 收到重要消息: " + message);
+                    }
+                    
+                    // *** 新增：定期輸出統計信息 ***
+                    if (DEBUG_MESSAGES && messageCount % 100 == 0) {
+                        long currentTime = System.currentTimeMillis();
+                        long elapsed = currentTime - lastStatsTime;
+                        if (elapsed > 5000) { // 每5秒輸出一次統計
+                            System.out.println("NetworkManager 統計: 收到 " + messageCount + " 條消息，隊列大小: " + messageQueue.size());
+                            lastStatsTime = currentTime;
+                        }
+                    }
                     
                 } catch (IOException e) {
                     if (running.get()) {
@@ -89,9 +112,27 @@ public class NetworkManager {
             System.err.println("NetworkManager 接收線程異常: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            System.out.println("NetworkManager 接收線程結束");
+            if (DEBUG_MESSAGES) {
+                System.out.println("NetworkManager 接收線程結束，總共處理 " + messageCount + " 條消息");
+            }
         }
-}
+    }
+    
+    /**
+     * *** 新增：判斷是否應該記錄該消息 ***
+     */
+    private boolean shouldLogMessage(String message) {
+        if (!DEBUG_MESSAGES) return false;
+        
+        // 只記錄重要消息，過濾高頻的位置更新
+        return !message.startsWith("POS:") && 
+               !message.startsWith("STATE:") ||
+               message.equals("GAME_START") ||
+               message.equals("INTRO_COMPLETE") ||
+               message.equals("GAME_OVER") ||
+               message.equals("CLIENT_READY") ||
+               message.equals("CONNECTION_CONFIRMED");
+    }
 
     public String pollMessage() {
         return messageQueue.poll();
@@ -101,11 +142,17 @@ public class NetworkManager {
         if (out != null && !socket.isClosed()) {
             out.println(message);
             out.flush(); // 確保消息立即發送
-            System.out.println("NetworkManager 發送消息: " + message + " (身份: " + (isHost ? "主機" : "客戶端") + ")");
+            
+            // *** 修改：只記錄重要消息 ***
+            if (shouldLogMessage(message)) {
+                System.out.println("NetworkManager 發送重要消息: " + message + " (身份: " + (isHost ? "主機" : "客戶端") + ")");
+            }
         } else {
-            System.err.println("NetworkManager 無法發送消息: 連接無效");
-            System.err.println("  out: " + (out != null ? "存在" : "null"));
-            System.err.println("  socket: " + (socket != null ? ("closed=" + socket.isClosed()) : "null"));
+            if (DEBUG_MESSAGES) {
+                System.err.println("NetworkManager 無法發送消息: 連接無效");
+                System.err.println("  out: " + (out != null ? "存在" : "null"));
+                System.err.println("  socket: " + (socket != null ? ("closed=" + socket.isClosed()) : "null"));
+            }
         }
     }
 
@@ -155,5 +202,16 @@ public class NetworkManager {
     
     public boolean isConnected() {
         return socket != null && socket.isConnected() && !socket.isClosed() && running.get();
+    }
+    
+    /**
+     * *** 新增：獲取統計信息 ***
+     */
+    public long getMessageCount() {
+        return messageCount;
+    }
+    
+    public int getQueueSize() {
+        return messageQueue.size();
     }
 }

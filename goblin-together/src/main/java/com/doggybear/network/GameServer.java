@@ -109,7 +109,7 @@ public class GameServer {
         try {
             String inputLine;
             while (running && (inputLine = clientIn.readLine()) != null) {
-                System.out.println("GameServer收到客戶端消息: " + inputLine);
+                // System.out.println("GameServer收到客戶端消息: " + inputLine);
                 
                 if ("CLIENT_READY".equals(inputLine)) {
                     System.out.println("客戶端已準備就緒");
@@ -118,7 +118,7 @@ public class GameServer {
                     clientOut.println("PONG");
                     System.out.println("回應客戶端PING");
                 } else {
-                    System.out.println("處理其他客戶端消息: " + inputLine);
+                    // System.out.println("處理其他客戶端消息: " + inputLine);
                 }
             }
         } catch (IOException e) {

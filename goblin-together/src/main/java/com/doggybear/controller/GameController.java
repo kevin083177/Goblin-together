@@ -38,13 +38,14 @@ public class GameController {
     private double timeSinceLastLavaRise = 0;
     private boolean isGameOver = false;
     private boolean gameStarted = false;
+    private boolean actualGameStarted = false; // *** 新增：實際遊戲是否開始（Intro完成後）***
     private double gameStartTime;
 
     private boolean isOnlineMode = false;
     private boolean isHost = false;
     
     public void initGame() {
-        System.out.println("GameController.initGame() 開始");
+        System.out.println("=== 開始遊戲初始化 ===");
         
         cleanup();
         
@@ -55,7 +56,8 @@ public class GameController {
         System.out.println("GameController初始化 - isOnlineMode: " + isOnlineMode + ", isHost: " + isHost);
         
         isGameOver = false;
-        gameStarted = false; // 遊戲尚未開始
+        gameStarted = false;
+        actualGameStarted = false; // *** 新增：實際遊戲尚未開始 ***
         gameStartTime = FXGL.getGameTimer().getNow();
 
         // 確保在正確的場景中
@@ -88,8 +90,10 @@ public class GameController {
             System.err.println("警告：goblin 為 null，無法添加計時器");
         }
         
-        // 初始時停止計時器
+        // *** 關鍵修改：Timer保持停止狀態，等待Intro完成 ***
         timer.stop();
+        timer.resetWithoutStart();
+        System.out.println("Timer已初始化但保持停止狀態，等待Intro完成");
         
         // 從 Settings 獲取預設值
         lavaHeight = level.getInitialLavaHeight();
@@ -115,7 +119,7 @@ public class GameController {
         startIntroSequence();
         System.out.println("開場動畫已啟動");
         
-        System.out.println("GameController.initGame() 完成");
+        System.out.println("=== 遊戲初始化完成 ===");
     }
 
     /**
@@ -140,79 +144,60 @@ public class GameController {
             new IntroSequence.IntroCompleteCallback() {
                 @Override
                 public void onIntroComplete() {
-                // 只在主機端觸發遊戲開始
+                    System.out.println("=== Intro完成，現在開始實際遊戲 ===");
+                    
+                    // *** 關鍵修改：Intro完成後才真正開始遊戲和計時 ***
+                    startActualGameAfterIntro();
+                    
+                    // 線上模式：主機發送Intro完成消息
                     if (isOnlineMode && isHost) {
-                        // 發送開場動畫完成消息
                         Main main = (Main) FXGL.getApp();
                         main.sendNetworkMessage("INTRO_COMPLETE");
-                        startActualGame();
-                    } else if (!isOnlineMode) {
-                        // 單機模式直接開始
-                        startActualGame();
+                        System.out.println("主機發送INTRO_COMPLETE消息");
                     }
-                    // 客戶端會等待主機的 INTRO_COMPLETE 消息
                 }
             });
     }
     
-    private void createPlayers() {
-        try {
-            System.out.println("開始創建玩家角色");
-            System.out.println("  遊戲模式: " + (isOnlineMode ? "線上" : "單機"));
-            System.out.println("  玩家身份: " + (isHost ? "主機" : "客戶端"));
-            
-            // 創建兩個玩家角色
-            goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
-            goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
-            
-            System.out.println("玩家創建結果:");
-            System.out.println("  Goblin (玩家1) 位置: (" + level.getGoblinStartX() + ", " + level.getGoblinStartY() + ") - " + (goblin != null ? "成功" : "失敗"));
-            System.out.println("  Goblin2 (玩家2) 位置: (" + level.getGoblin2StartX() + ", " + level.getGoblin2StartY() + ") - " + (goblin2 != null ? "成功" : "失敗"));
-            
-            // 驗證實體創建
-            if (goblin == null) {
-                System.err.println("錯誤：goblin創建失敗！");
-            } else {
-                System.out.println("  Goblin實體ID: " + goblin.toString());
-            }
-            
-            if (goblin2 == null) {
-                System.err.println("錯誤：goblin2創建失敗！");
-            } else {
-                System.out.println("  Goblin2實體ID: " + goblin2.toString());
-            }
-            
-            if (isOnlineMode) {
-                if (isHost) {
-                    System.out.println("主機控制: goblin (玩家1)");
-                } else {
-                    System.out.println("客戶端控制: goblin2 (玩家2)");
-                }
-            } else {
-                System.out.println("單機模式: 玩家1控制goblin, 玩家2控制goblin2");
-            }
-            
-            // 驗證getGoblin2()方法是否正常工作
-            Entity testGoblin2 = getGoblin2();
-            System.out.println("  getGoblin2()測試: " + (testGoblin2 != null ? "成功" : "失敗"));
-            if (testGoblin2 != null) {
-                System.out.println("  getGoblin2()返回實體ID: " + testGoblin2.toString());
-            }
-            
-        } catch (Exception e) {
-            System.err.println("創建玩家角色失敗: " + e.getMessage());
-            e.printStackTrace();
-            throw e; // 重新拋出異常，讓上層處理
+    /**
+     * *** 新方法：Intro完成後才調用，真正開始遊戲和計時 ***
+     */
+    private void startActualGameAfterIntro() {
+        System.out.println("=== startActualGameAfterIntro 開始 ===");
+        
+        if (actualGameStarted) {
+            System.out.println("實際遊戲已經開始，忽略重複調用");
+            return;
         }
+        
+        actualGameStarted = true;
+        gameStarted = true; // 確保遊戲狀態正確
+        gameStartTime = FXGL.getGameTimer().getNow();
+        
+        // *** 現在才真正開始計時 ***
+        if (timer != null) {
+            timer.resetTime(); // 重置時間
+            timer.start(); // 開始計時
+            System.out.println("Timer現在開始計時（Intro完成後）");
+        } else {
+            System.err.println("警告：timer為null");
+        }
+        
+        // 確保岩漿從相同高度開始
+        lavaHeight = level.getInitialLavaHeight();
+        timeSinceLastLavaRise = 0;
+        
+        System.out.println("實際遊戲已開始，Timer正在計時");
+        updateViewport();
+        
+        System.out.println("=== startActualGameAfterIntro 完成 ===");
     }
 
+    /**
+     * *** 修改：這個方法現在只負責設置基本狀態，不啟動Timer ***
+     */
     public void startActualGame() {
         System.out.println("=== GameController.startActualGame 開始 ===");
-        System.out.println("當前遊戲狀態:");
-        System.out.println("  gameStarted: " + gameStarted);
-        System.out.println("  isGameOver: " + isGameOver);
-        System.out.println("  線上模式: " + isOnlineMode);
-        System.out.println("  主機: " + isHost);
         
         if (gameStarted) {
             System.out.println("遊戲已經開始，忽略重複調用");
@@ -222,28 +207,28 @@ public class GameController {
         gameStarted = true;
         gameStartTime = FXGL.getGameTimer().getNow();
         
-        System.out.println("設置 gameStarted = true");
+        System.out.println("設置 gameStarted = true（但Timer等待Intro完成）");
         
-        // 重置並啟動計時器
-        if (timer != null) {
-            timer.reset();
-            System.out.println("計時器已重置並啟動");
-        } else {
-            System.err.println("警告：timer為null");
-        }
+        // *** 注意：不在這裡啟動Timer，等待Intro完成 ***
         
         // 確保岩漿從相同高度開始
         lavaHeight = level.getInitialLavaHeight();
         timeSinceLastLavaRise = 0;
         
-        System.out.println("岩漿設置完成 - 初始高度: " + lavaHeight);
-        
-        // 更新視角
         updateViewport();
         
-        System.out.println("=== GameController.startActualGame 完成 ===");
+        System.out.println("=== GameController.startActualGame 完成（Timer待Intro完成）===");
     }
-
+    
+    /**
+     * *** 新增：處理線上模式的Intro完成事件 ***
+     */
+    public void onReceiveIntroComplete() {
+        System.out.println("收到INTRO_COMPLETE消息");
+        if (!actualGameStarted) {
+            startActualGameAfterIntro();
+        }
+    }
     
     private void createStretchedBackgroundEntity() {
         double bgWidth = FXGL.getAppWidth() * 1.1;
@@ -279,7 +264,8 @@ public class GameController {
     }
      
     public void update(double tpf) {
-        if (!gameStarted) {
+        // *** 修改：只有實際遊戲開始後才進行遊戲邏輯更新 ***
+        if (!actualGameStarted) {
             return;
         }
         
@@ -335,6 +321,23 @@ public class GameController {
         }
     }
     
+    private void createPlayers() {
+        try {
+            System.out.println("開始創建玩家角色");
+            
+            // 創建兩個玩家角色
+            goblin = spawn("goblin", level.getGoblinStartX(), level.getGoblinStartY());
+            goblin2 = spawn("goblin2", level.getGoblin2StartX(), level.getGoblin2StartY());
+            
+            System.out.println("玩家創建完成");
+            
+        } catch (Exception e) {
+            System.err.println("創建玩家角色失敗: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    
     private void createFinishLine() {
         FinishCircle.FinishCallback finishCallback = new FinishCircle.FinishCallback() {
             @Override
@@ -370,14 +373,14 @@ public class GameController {
     }
 
     public boolean checkGameOver() {
-        if (isGameOver) return true;
+        if (isGameOver || !actualGameStarted) return false;
         
-        boolean goblinDead = (goblin.getY() + goblin.getHeight() > lavaY - lavaHeight);
-        boolean goblin2Dead = (goblin2.getY() + goblin2.getHeight() > lavaY - lavaHeight);
+        boolean goblinDead = (goblin.getY() >= lavaY - lavaHeight);
+        boolean goblin2Dead = (goblin2.getY() >= lavaY - lavaHeight);
         
         if (goblinDead || goblin2Dead) {
             setGameOver(true);
-            
+            timer.stop();
             // 在線模式下發送遊戲結束狀態
             if (isOnlineMode) {
                 Main main = (Main) FXGL.getApp();
@@ -412,8 +415,8 @@ public class GameController {
             }
             
             // 計算兩個哥布林的中心點作為視角中心
-            double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25; // 加上一半的寬度(50/2)
-            double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25; // 加上一半的高度(50/2)
+            double centerX = (goblin.getX() + goblin2.getX()) / 2 + 25;
+            double centerY = (goblin.getY() + goblin2.getY()) / 2 + 25;
             
             // 計算目標視角位置（讓中心點位於畫面中央）
             double targetViewX = centerX - getAppWidth() / 2;
@@ -421,8 +424,8 @@ public class GameController {
             
             targetViewX = 0; // 固定X軸位置
             
-            double minViewY = -Settings.WORLD_HEIGHT; // 上邊界
-            double maxViewY = 0; // 下邊界
+            double minViewY = -Settings.WORLD_HEIGHT;
+            double maxViewY = 0;
             
             targetViewY = Math.max(minViewY, Math.min(targetViewY, maxViewY));
             
@@ -430,12 +433,6 @@ public class GameController {
             getGameScene().getViewport().setY(targetViewY);
         } catch (Exception e) {
             System.err.println("Error updating viewport: " + e.getMessage());
-        }
-    }
-
-    public void onReceiveIntroComplete() {
-        if (!gameStarted) {
-            startActualGame();
         }
     }
     
@@ -452,6 +449,7 @@ public class GameController {
     public Level getLevel() { return level; }
     public boolean isGameOver() { return isGameOver; }
     public boolean isGameStarted() { return gameStarted; }
+    public boolean isActualGameStarted() { return actualGameStarted; } // *** 新增 ***
     
     // Setters
     public void setGameOver(boolean gameOver) { this.isGameOver = gameOver; }
