@@ -2,11 +2,13 @@ package com.doggybear.ui;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
@@ -32,22 +34,20 @@ public class GameFinish {
     private void createGameFinishUI() {
         overlay = new Rectangle(getAppWidth(), getAppHeight(), Color.color(0, 0, 0, 0.7));
         
-        Rectangle modalBg = new Rectangle(450, 400, Color.color(0.1, 0.1, 0.2, 0.95));
+        Rectangle modalBg = new Rectangle(450, 400, Color.color(1, 1, 1, 0.95));
         modalBg.setArcWidth(20);
         modalBg.setArcHeight(20);
         modalBg.setStroke(Color.GOLD);
         modalBg.setStrokeWidth(3);
         
-        Text congratsText = new Text("恭喜通關!");
-        congratsText.setFont(Font.font("Arial", 36));
+        Text congratsText = new Text("成功通關");
+        congratsText.setFont(FontManager.getFont(FontManager.FontType.REGULAR, 32));
         congratsText.setFill(Color.GOLD);
         
         String timeText = formatTime(completionTime);
-        Text completionTimeText = new Text("完成時間: " + timeText);
-        completionTimeText.setFont(Font.font("Arial", 22));
-        completionTimeText.setFill(Color.WHITE);
+        VBox scoreCard = createScoreCard(timeText);
         
-        Button menuBtn = createStyledButton("回到主選單", "#2196F3");
+        Button menuBtn = createIconButton("🏠", "返回主選單", "#4CAF50");
         menuBtn.setOnAction(e -> {
             if (callback != null) {
                 hide();
@@ -59,7 +59,7 @@ public class GameFinish {
         modalContent.setAlignment(Pos.CENTER);
         modalContent.getChildren().addAll(
             congratsText, 
-            completionTimeText,
+            scoreCard,
             menuBtn
         );
         
@@ -81,32 +81,66 @@ public class GameFinish {
             return String.format("%.2f秒", seconds);
         }
     }
-       
-    private Button createStyledButton(String text, String color) {
-        Button button = new Button(text);
-        button.setPrefWidth(180);
-        button.setPrefHeight(45);
+    
+    private VBox createScoreCard(String time) {
+        VBox scoreCard = new VBox(15);
+        scoreCard.setAlignment(Pos.CENTER);
+        
+        Text scoreLabel = new Text("通關時間");
+        try {
+            Font labelFont = FontManager.getFont(FontManager.FontType.REGULAR, 18);
+            scoreLabel.setFont(labelFont);
+        } catch (Exception e) {
+            scoreLabel.setFont(Font.font("Arial", 18));
+        }
+        scoreLabel.setFill(Color.web("#666666"));
+        
+        Text scoreNumber = new Text(time);
+        try {
+            Font scoreFont = FontManager.getFont(FontManager.FontType.REGULAR, 48);
+            scoreNumber.setFont(scoreFont);
+        } catch (Exception e) {
+            scoreNumber.setFont(Font.font("Arial", FontWeight.BOLD, 48));
+        }
+        scoreNumber.setFill(Color.web("#333333"));
+        
+        scoreCard.getChildren().addAll(scoreLabel, scoreNumber);
+        
+        return scoreCard;
+    }
+
+    private Button createIconButton(String icon, String tooltipText, String color) {
+        Button button = new Button(icon);
+        
+        button.setPrefSize(70, 70);
+        button.setMinSize(70, 70);
+        button.setMaxSize(70, 70);
+        
         button.setStyle(String.format(
-            "-fx-background-color: %s; " +
-            "-fx-text-fill: white; " +
-            "-fx-font-size: 16px; " +
-            "-fx-background-radius: 8px; " +
-            "-fx-cursor: hand; " +
-            "-fx-font-weight: bold;",
+            "-fx-background-color: %s;" +
+            "-fx-background-radius: 35;" +
+            "-fx-border-radius: 35;" +
+            "-fx-font-size: 28px;" +
+            "-fx-text-fill: white;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);",
             color
         ));
         
-        // 滑鼠懸停效果
+        // 添加工具提示
+        Tooltip tooltip = new Tooltip(tooltipText);
+        Tooltip.install(button, tooltip);
+        
         button.setOnMouseEntered(e -> {
             button.setStyle(String.format(
-                "-fx-background-color: %s; " +
-                "-fx-text-fill: white; " +
-                "-fx-font-size: 16px; " +
-                "-fx-background-radius: 8px; " +
-                "-fx-cursor: hand; " +
-                "-fx-font-weight: bold; " +
-                "-fx-opacity: 0.8; " +
-                "-fx-scale-x: 1.05; " +
+                "-fx-background-color: derive(%s, -10%%);" +
+                "-fx-background-radius: 35;" +
+                "-fx-border-radius: 35;" +
+                "-fx-font-size: 28px;" +
+                "-fx-text-fill: white;" +
+                "-fx-cursor: hand;" +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 8, 0, 0, 3);" +
+                "-fx-scale-x: 1.05;" +
                 "-fx-scale-y: 1.05;",
                 color
             ));
@@ -114,12 +148,28 @@ public class GameFinish {
         
         button.setOnMouseExited(e -> {
             button.setStyle(String.format(
-                "-fx-background-color: %s; " +
-                "-fx-text-fill: white; " +
-                "-fx-font-size: 16px; " +
-                "-fx-background-radius: 8px; " +
-                "-fx-cursor: hand; " +
-                "-fx-font-weight: bold;",
+                "-fx-background-color: %s;" +
+                "-fx-background-radius: 35;" +
+                "-fx-border-radius: 35;" +
+                "-fx-font-size: 28px;" +
+                "-fx-text-fill: white;" +
+                "-fx-cursor: hand;" +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);",
+                color
+            ));
+        });
+        
+        button.setOnMousePressed(e -> {
+            button.setStyle(String.format(
+                "-fx-background-color: derive(%s, -20%%);" +
+                "-fx-background-radius: 35;" +
+                "-fx-border-radius: 35;" +
+                "-fx-font-size: 28px;" +
+                "-fx-text-fill: white;" +
+                "-fx-cursor: hand;" +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 3, 0, 0, 1);" +
+                "-fx-scale-x: 0.95;" +
+                "-fx-scale-y: 0.95;",
                 color
             ));
         });
