@@ -2,6 +2,7 @@ package com.doggybear.ui;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -25,9 +26,11 @@ public class GameOver {
     }
     
     private GameOverCallback callback;
+    private boolean isOnlineMode; // 新增：是否在線模式
     
-    public GameOver(int survivalTime, GameOverCallback callback) {
+    public GameOver(int survivalTime, boolean isOnlineMode, GameOverCallback callback) {
         this.survivalTime = survivalTime;
+        this.isOnlineMode = isOnlineMode; // 新增
         this.callback = callback;
         createGameOverUI();
     }
@@ -102,7 +105,11 @@ public class GameOver {
         HBox buttonContainer = new HBox(40);
         buttonContainer.setAlignment(Pos.CENTER);
         
-        Button homeBtn = createIconButton("🏠", "#4CAF50");
+        // 根據模式決定按鈕文字和提示
+        String homeButtonIcon = isOnlineMode ? "🚪" : "🏠";
+        String homeButtonTooltip = isOnlineMode ? "返回房間" : "返回主選單";
+        
+        Button homeBtn = createIconButton(homeButtonIcon, homeButtonTooltip, "#4CAF50");
         homeBtn.setOnAction(e -> {
             if (callback != null) {
                 hide();
@@ -110,7 +117,7 @@ public class GameOver {
             }
         });
         
-        Button restartBtn = createIconButton("🔄", "#FF9800");
+        Button restartBtn = createIconButton("🔄", "重新開始", "#FF9800");
         restartBtn.setOnAction(e -> {
             if (callback != null) {
                 hide();
@@ -124,9 +131,9 @@ public class GameOver {
     }
     
     /**
-     * 創建圓形圖標按鈕
+     * 創建圓形圖標按鈕（帶提示）
      */
-    private Button createIconButton(String icon, String color) {
+    private Button createIconButton(String icon, String tooltipText, String color) {
         Button button = new Button(icon);
         
         button.setPrefSize(70, 70);
@@ -143,6 +150,10 @@ public class GameOver {
             "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);",
             color
         ));
+        
+        // 添加工具提示
+        Tooltip tooltip = new Tooltip(tooltipText);
+        Tooltip.install(button, tooltip);
         
         button.setOnMouseEntered(e -> {
             button.setStyle(String.format(

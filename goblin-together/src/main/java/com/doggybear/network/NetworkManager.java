@@ -21,33 +21,70 @@ public class NetworkManager {
     public NetworkManager(Socket socket, boolean isHost) {
         this.socket = socket;
         this.isHost = isHost;
+        
         try {
-            out = new PrintWriter(socket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            if (socket != null && !socket.isClosed()) {
+                out = new PrintWriter(socket.getOutputStream(), true);
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                System.out.println("NetworkManager 初始化成功 - isHost: " + isHost);
+            } else {
+                System.err.println("NetworkManager 初始化失敗: Socket 無效或已關閉");
+            }
         } catch (IOException e) {
-            System.err.println("网络管理器初始化失败: " + e.getMessage());
+            System.err.println("NetworkManager 初始化失敗: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     public void start() {
+        if (in == null || out == null) {
+            System.err.println("NetworkManager 無法啟動: I/O 流未初始化");
+            return;
+        }
+        
         receiveThread = new Thread(this::receiveMessages);
         receiveThread.setDaemon(true);
         receiveThread.start();
+        System.out.println("NetworkManager 接收線程已啟動");
     }
 
     private void receiveMessages() {
         try {
-            while (running.get()) {
-                String message = in.readLine();
-                if (message == null) {
-                    break; // 连接已关闭
+            // 檢查初始狀態
+            if (in == null || socket == null || socket.isClosed()) {
+                System.err.println("NetworkManager: 連接無效，無法接收消息");
+                return;
+            }
+            
+            System.out.println("NetworkManager 開始接收消息...");
+            String message;
+            
+            while (running.get() && !socket.isClosed()) {
+                try {
+                    message = in.readLine();
+                    
+                    if (message == null) {
+                        System.out.println("NetworkManager: 連接已斷開 (收到 null)");
+                        break;
+                    }
+                    
+                    // 將消息加入隊列
+                    messageQueue.offer(message);
+                    System.out.println("NetworkManager 收到消息: " + message);
+                    
+                } catch (IOException e) {
+                    if (running.get()) {
+                        System.err.println("NetworkManager 接收消息錯誤: " + e.getMessage());
+                    }
+                    break;
                 }
-                messageQueue.offer(message);
             }
-        } catch (IOException e) {
-            if (running.get()) {
-                System.err.println("网络接收错误: " + e.getMessage());
-            }
+            
+        } catch (Exception e) {
+            System.err.println("NetworkManager 接收線程異常: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            System.out.println("NetworkManager 接收線程結束");
         }
     }
 
@@ -56,22 +93,59 @@ public class NetworkManager {
     }
 
     public void sendMessage(String message) {
-        if (out != null) {
+        if (out != null && !socket.isClosed()) {
             out.println(message);
+            System.out.println("NetworkManager 發送消息: " + message);
+        } else {
+            System.err.println("NetworkManager 無法發送消息: 連接無效");
         }
     }
 
     public void stop() {
+        stop(true);
+    }
+    
+    /**
+     * 停止網絡管理器
+     * @param closeSocket 是否關閉底層Socket
+     */
+    public void stop(boolean closeSocket) {
+        System.out.println("NetworkManager 停止中... closeSocket: " + closeSocket);
         running.set(false);
+        
         try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null && !socket.isClosed()) socket.close();
+            // 關閉 I/O 流
+            if (out != null) {
+                out.close();
+            }
+            if (in != null) {
+                in.close();
+            }
+            
+            // 根據參數決定是否關閉 Socket
+            if (closeSocket && socket != null && !socket.isClosed()) {
+                socket.close();
+                System.out.println("NetworkManager: 關閉Socket");
+            }
+            
+            // 中斷接收線程
             if (receiveThread != null && receiveThread.isAlive()) {
                 receiveThread.interrupt();
+                try {
+                    receiveThread.join(1000); // 等待最多1秒
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
+            
         } catch (IOException e) {
-            System.err.println("关闭网络连接时出错: " + e.getMessage());
+            System.err.println("NetworkManager 關閉時出錯: " + e.getMessage());
         }
+        
+        System.out.println("NetworkManager 已停止");
+    }
+    
+    public boolean isConnected() {
+        return socket != null && socket.isConnected() && !socket.isClosed() && running.get();
     }
 }

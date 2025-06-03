@@ -107,4 +107,14 @@ public class Timer extends Component {
             FXGL.getGameScene().removeUINode(timerText);
         }
     }
+
+    public void setElapsedSeconds(int seconds) {
+        this.elapsedTime = seconds;
+        updateDisplay();
+    }
+
+    private void updateDisplay() {
+        int seconds = (int) elapsedTime;
+        timerText.setText("時間: " + seconds + " 秒");
+    }
 }
