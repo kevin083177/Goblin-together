@@ -93,7 +93,7 @@ public class LevelManager {
 
         // LEFT
         level.createDisappearingPlatform(450, -1220, 120, 50, 1, 2);
-        level.createDisappearingPlatform(250, -1280, 100, 50, 1, 2);
+        level.createDisappearingPlatform(230, -1280, 120, 50, 1, 2);
 
         // END
         level.createPlatform(0, -1350, 120, 50, 4);

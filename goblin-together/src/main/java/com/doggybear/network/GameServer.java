@@ -12,13 +12,16 @@ public class GameServer {
     private Thread serverThread;
     
     private ClientDisconnectedCallback clientDisconnectedCallback;
-    private ClientConnectedCallback clientConnectedCallback; // 保存ClientConnectedCallback
+    private ClientConnectedCallback clientConnectedCallback;
+    
+    // 用於與客戶端通信
+    private PrintWriter clientOut;
+    private BufferedReader clientIn;
 
     public interface ClientDisconnectedCallback {
         void onClientDisconnected();
     }
 
-    
     public interface ClientConnectedCallback {
         void onClientConnected();
     }
@@ -42,25 +45,44 @@ public class GameServer {
                 clientSocket = serverSocket.accept();
                 System.out.println("客戶端已連接: " + clientSocket.getInetAddress());
                 
+                // 設置通信流
+                clientOut = new PrintWriter(clientSocket.getOutputStream(), true);
+                clientIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                
                 if (clientConnectedCallback != null) {
                     clientConnectedCallback.onClientConnected();
                 }
                 
-                // 發送訊息至客户端 - 開始遊戲
-                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                out.println("GAME_START");
+                // 發送連接確認消息，但不發送遊戲開始消息
+                clientOut.println("CONNECTION_CONFIRMED");
                 
-                // 處理訊息
+                // 處理客戶端消息
                 handleClient();
                 
             } catch (IOException e) {
                 if (running) {
                     System.err.println("伺服器錯誤: " + e.getMessage());
+                    // 通知客戶端斷線
+                    if (clientDisconnectedCallback != null) {
+                        clientDisconnectedCallback.onClientDisconnected();
+                    }
                 }
             }
         });
         
         serverThread.start();
+    }
+    
+    /**
+     * 發送遊戲開始消息給客戶端
+     */
+    public void sendGameStart() {
+        if (clientOut != null && isConnected()) {
+            System.out.println("發送GAME_START消息給客戶端");
+            clientOut.println("GAME_START");
+        } else {
+            System.err.println("無法發送遊戲開始消息：客戶端未連接");
+        }
     }
     
     public void restart() throws IOException {
@@ -71,30 +93,63 @@ public class GameServer {
 
     private void handleClient() {
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-            
             String inputLine;
-            while (running && (inputLine = in.readLine()) != null) {
+            while (running && (inputLine = clientIn.readLine()) != null) {
+                System.out.println("收到客戶端消息: " + inputLine);
+                
                 if ("CLIENT_READY".equals(inputLine)) {
-                    // 客户机准备就绪，不需要特殊处理
                     System.out.println("客戶端已準備就緒");
+                } else if ("PING".equals(inputLine)) {
+                    // 心跳檢測
+                    clientOut.println("PONG");
                 }
+                // 其他消息可以在這裡處理
             }
         } catch (IOException e) {
-            
+            if (running) {
+                System.err.println("處理客戶端消息時出錯: " + e.getMessage());
+                if (clientDisconnectedCallback != null) {
+                    clientDisconnectedCallback.onClientDisconnected();
+                }
+            }
+        } finally {
+            System.out.println("客戶端連接已斷開");
         }
     }
     
     public void stop() {
+        stop(true);
+    }
+
+    /**
+     * 停止服務器
+     * @param closeClientSocket 是否關閉客戶端 Socket
+     */
+    public void stop(boolean closeClientSocket) {
+        System.out.println("GameServer 停止中... closeClientSocket: " + closeClientSocket);
         running = false;
+        
         try {
-            if (clientSocket != null && !clientSocket.isClosed()) {
-                clientSocket.close();
-            }
+            // 關閉服務器 Socket
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
             }
+            
+            // 根據參數決定是否關閉客戶端連接
+            if (closeClientSocket) {
+                if (clientOut != null) {
+                    clientOut.close();
+                }
+                if (clientIn != null) {
+                    clientIn.close();
+                }
+                if (clientSocket != null && !clientSocket.isClosed()) {
+                    clientSocket.close();
+                }
+            } else {
+                System.out.println("GameServer: 保持客戶端 Socket 開啟");
+            }
+            
             if (serverThread != null) {
                 serverThread.interrupt();
             }
@@ -135,5 +190,13 @@ public class GameServer {
 
     public Socket getClientSocket() {
         return clientSocket;
+    }
+
+    public Socket transferClientSocket() {
+        Socket transferred = clientSocket;
+        clientSocket = null; // 移除引用，避免被意外關閉
+        clientOut = null;
+        clientIn = null;
+        return transferred;
     }
 }

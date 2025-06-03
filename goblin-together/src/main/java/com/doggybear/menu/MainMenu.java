@@ -3,6 +3,7 @@ package com.doggybear.menu;
 import com.almasb.fxgl.app.scene.FXGLMenu;
 import com.almasb.fxgl.app.scene.MenuType;
 import com.almasb.fxgl.dsl.FXGL;
+import com.doggybear.GameData;
 import com.doggybear.ui.FontManager;
 
 import javafx.geometry.Insets;
@@ -51,7 +52,12 @@ public class MainMenu extends FXGLMenu {
         Button btnControls = createImageButton("helpButton.png", "操作說明");
         Button btnExit = createImageButton("exitButton.png", "退出");
         
-        btnLocalCoop.setOnAction(e -> fireNewGame());
+        btnLocalCoop.setOnAction(e -> {
+            // 重置網絡數據，確保單機模式
+            GameData.reset();
+            System.out.println("進入單機模式");
+            fireNewGame();
+        });
         btnOnlineCoop.setOnAction(e -> showOnlineModal());
         btnControls.setOnAction(e -> showControls());
         btnExit.setOnAction(e -> fireExit());
