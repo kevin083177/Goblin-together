@@ -140,6 +140,8 @@ public class MainMenu extends FXGLMenu {
     }
     
     private void showControls() {
+        Font title_font = FontManager.getFont(FontManager.FontType.REGULAR, 24);
+        Font content_font = FontManager.getFont(FontManager.FontType.REGULAR, 18);
         var controlsPane = new StackPane();
         
         var bg = new Rectangle(500, 300, Color.color(0.2, 0.2, 0.2, 0.9));
@@ -152,15 +154,19 @@ public class MainMenu extends FXGLMenu {
         var title = new Text("操作說明");
         title.setFill(Color.WHITE);
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
-        
+        title.setFont(title_font);
+
         var player1Controls = new Text("玩家 1: 使用 A/D 鍵移動，空白鍵跳躍");
         player1Controls.setFill(Color.WHITE);
+        player1Controls.setFont(content_font);
         
         var player2Controls = new Text("玩家 2: 使用方向鍵移動，Enter鍵跳躍");
         player2Controls.setFill(Color.WHITE);
+        player2Controls.setFont(content_font);
         
         var objective = new Text("目標: 逃避不斷上升的岩漿，存活越久越好！");
         objective.setFill(Color.WHITE);
+        objective.setFont(content_font);
         
         var closeBtn = createTextButton("關閉", "#FF9800");
         closeBtn.setPrefWidth(100);
