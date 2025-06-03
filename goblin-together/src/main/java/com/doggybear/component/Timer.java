@@ -54,6 +54,7 @@ public class Timer extends Component {
      */
     public void start() {
         isActive = true;
+        System.out.println("Timer: 開始計時");
     }
     
     /**
@@ -61,6 +62,7 @@ public class Timer extends Component {
      */
     public void stop() {
         isActive = false;
+        System.out.println("Timer: 停止計時");
     }
     
     /**
@@ -70,15 +72,26 @@ public class Timer extends Component {
         elapsedTime = 0;
         isActive = true;
         timerText.setText("時間: 0 秒");
+        System.out.println("Timer: 重置並開始計時");
     }
     
     /**
-     * 重置計時器但不開始計時
+     * 重置計時器但不開始計時 - 新增方法
      */
     public void resetWithoutStart() {
         elapsedTime = 0;
         isActive = false;
         timerText.setText("時間: 0秒");
+        System.out.println("Timer: 重置但不開始計時");
+    }
+    
+    /**
+     * 只重置時間，保持當前啟動狀態 - 新增方法
+     */
+    public void resetTime() {
+        elapsedTime = 0;
+        updateDisplay();
+        System.out.println("Timer: 僅重置時間");
     }
     
     /**
