@@ -18,7 +18,6 @@ public class GameFinish {
     private double completionTime;
     
     public interface GameFinishCallback {
-        void onRestart();
         void onBackToMenu();
     }
     
@@ -48,14 +47,6 @@ public class GameFinish {
         completionTimeText.setFont(Font.font("Arial", 22));
         completionTimeText.setFill(Color.WHITE);
         
-        Button restartBtn = createStyledButton("重新挑戰", "#FF9800");
-        restartBtn.setOnAction(e -> {
-            if (callback != null) {
-                hide();
-                callback.onRestart();
-            }
-        });
-        
         Button menuBtn = createStyledButton("回到主選單", "#2196F3");
         menuBtn.setOnAction(e -> {
             if (callback != null) {
@@ -69,7 +60,6 @@ public class GameFinish {
         modalContent.getChildren().addAll(
             congratsText, 
             completionTimeText,
-            restartBtn, 
             menuBtn
         );
         

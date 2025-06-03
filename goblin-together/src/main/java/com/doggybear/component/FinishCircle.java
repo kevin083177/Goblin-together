@@ -125,12 +125,6 @@ public class FinishCircle extends Component {
     private void showDefaultCompletionScreen(double totalTime) {
         GameFinish gameFinish = new GameFinish(totalTime, new GameFinish.GameFinishCallback() {
             @Override
-            public void onRestart() {
-                // 重新開始
-                FXGL.getGameController().startNewGame();
-            }
-            
-            @Override
             public void onBackToMenu() {
                 // 回到主選單
                 FXGL.getGameController().gotoMainMenu();
