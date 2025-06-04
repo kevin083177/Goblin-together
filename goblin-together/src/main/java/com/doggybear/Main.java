@@ -30,7 +30,7 @@ public class Main extends GameApplication {
     private boolean isHost;
     private boolean isOnlineMode = false;
 
-    private static final double SYNC_INTERVAL = 0.01; 
+    private static final double SYNC_INTERVAL = 0.1; // 減少到100ms，降低殘影
     private double syncAccumulator = 0;
 
     @Override
@@ -58,20 +58,16 @@ public class Main extends GameApplication {
                 networkManager = new NetworkManager(socket, isHost);
                 networkManager.start();
                 
-                // 標記 Socket 已被 NetworkManager 管理
                 GameData.markSocketAsManaged();
                 
                 System.out.println("網絡管理器已啟動");
             }
 
-            // 初始化字型管理器
             FontManager.initialize();
             
-            // 初始化遊戲控制器
             gameController = new GameController();
             gameController.initGame();
             
-            // 初始化物理控制器
             physicsController = new PhysicsController(this::showGameOver);
             
             System.out.println("=== 遊戲初始化完成 ===");
@@ -81,13 +77,11 @@ public class Main extends GameApplication {
             System.err.println("錯誤: " + e.getMessage());
             e.printStackTrace();
             
-            // 清理資源
             if (networkManager != null) {
                 networkManager.stop();
                 networkManager = null;
             }
             
-            // 如果初始化失敗，回到主選單
             Platform.runLater(() -> {
                 System.out.println("初始化失敗，回到主選單");
                 GameData.reset();
@@ -104,31 +98,26 @@ public class Main extends GameApplication {
 
     @Override
     protected void initInput() {
-        // 線上模式的控制邏輯
         if (isOnlineMode) {
-            // 線上模式：每個玩家只能控制自己的角色
             if (isHost) {
-                // 主機只能控制 goblin1，使用 A/D/SPACE
                 setupPlayer1Controls();
             } else {
-                // 客戶端只能控制 goblin2，使用左右方向鍵和 Enter
                 setupPlayer2Controls();
             }
         } else {
-            // 單機模式：玩家1使用 A/D/SPACE，玩家2使用方向鍵
             setupPlayer1Controls();
             setupPlayer2Controls();
         }
     }
     
-    /**
-     * 設置玩家1的控制（A/D/SPACE）
-     */
     private void setupPlayer1Controls() {
         getInput().addAction(new UserAction("玩家1向右移動") {
             @Override
             protected void onAction() {
                 if (!canAcceptInput()) return;
+                
+                // 客戶端不控制goblin1，只有主機或單機模式才執行
+                if (isOnlineMode && !isHost) return;
                 
                 Entity targetGoblin = gameController.getGoblin();
                 if (targetGoblin != null) {
@@ -139,6 +128,8 @@ public class Main extends GameApplication {
             @Override
             protected void onActionEnd() {
                 if (!canAcceptInput()) return;
+                
+                if (isOnlineMode && !isHost) return;
                 
                 Entity targetGoblin = gameController.getGoblin();
                 if (targetGoblin != null) {
@@ -152,6 +143,8 @@ public class Main extends GameApplication {
             protected void onAction() {
                 if (!canAcceptInput()) return;
                 
+                if (isOnlineMode && !isHost) return;
+                
                 Entity targetGoblin = gameController.getGoblin();
                 if (targetGoblin != null) {
                     targetGoblin.getComponent(Goblin.class).moveLeft();
@@ -161,6 +154,8 @@ public class Main extends GameApplication {
             @Override
             protected void onActionEnd() {
                 if (!canAcceptInput()) return;
+                
+                if (isOnlineMode && !isHost) return;
                 
                 Entity targetGoblin = gameController.getGoblin();
                 if (targetGoblin != null) {
@@ -174,6 +169,8 @@ public class Main extends GameApplication {
             protected void onActionBegin() {
                 if (!canAcceptInput()) return;
                 
+                if (isOnlineMode && !isHost) return;
+                
                 Entity targetGoblin = gameController.getGoblin();
                 if (targetGoblin != null) {
                     targetGoblin.getComponent(Goblin.class).jump();
@@ -182,9 +179,6 @@ public class Main extends GameApplication {
         }, KeyCode.SPACE);
     }
     
-    /**
-     * 設置玩家2的控制（方向鍵）
-     */
     private void setupPlayer2Controls() {
         getInput().addAction(new UserAction("玩家2向右移動") {
             @Override
@@ -193,11 +187,15 @@ public class Main extends GameApplication {
                 
                 Entity targetGoblin = gameController.getGoblin2();
                 if (targetGoblin != null) {
-                    targetGoblin.getComponent(Goblin.class).moveRight();
-                    
                     if (isOnlineMode) {
-                        // 发送输入指令而不是位置
+                        // 線上模式：客戶端執行本地動作，主機只發送輸入指令
+                        if (!isHost) {
+                            targetGoblin.getComponent(Goblin.class).moveRight();
+                        }
                         sendInputCommand(2, "MOVE_RIGHT", true);
+                    } else {
+                        // 單機模式：直接執行
+                        targetGoblin.getComponent(Goblin.class).moveRight();
                     }
                 }
             }
@@ -208,11 +206,13 @@ public class Main extends GameApplication {
                 
                 Entity targetGoblin = gameController.getGoblin2();
                 if (targetGoblin != null) {
-                    targetGoblin.getComponent(Goblin.class).stop();
-                    
                     if (isOnlineMode) {
-                        // 发送输入指令而不是位置
+                        if (!isHost) {
+                            targetGoblin.getComponent(Goblin.class).stop();
+                        }
                         sendInputCommand(2, "MOVE_RIGHT", false);
+                    } else {
+                        targetGoblin.getComponent(Goblin.class).stop();
                     }
                 }
             }
@@ -225,11 +225,13 @@ public class Main extends GameApplication {
                 
                 Entity targetGoblin = gameController.getGoblin2();
                 if (targetGoblin != null) {
-                    targetGoblin.getComponent(Goblin.class).moveLeft();
-                    
                     if (isOnlineMode) {
-                        // 发送输入指令而不是位置
+                        if (!isHost) {
+                            targetGoblin.getComponent(Goblin.class).moveLeft();
+                        }
                         sendInputCommand(2, "MOVE_LEFT", true);
+                    } else {
+                        targetGoblin.getComponent(Goblin.class).moveLeft();
                     }
                 }
             }
@@ -240,11 +242,13 @@ public class Main extends GameApplication {
                 
                 Entity targetGoblin = gameController.getGoblin2();
                 if (targetGoblin != null) {
-                    targetGoblin.getComponent(Goblin.class).stop();
-                    
                     if (isOnlineMode) {
-                        // 发送输入指令而不是位置
+                        if (!isHost) {
+                            targetGoblin.getComponent(Goblin.class).stop();
+                        }
                         sendInputCommand(2, "MOVE_LEFT", false);
+                    } else {
+                        targetGoblin.getComponent(Goblin.class).stop();
                     }
                 }
             }
@@ -257,18 +261,19 @@ public class Main extends GameApplication {
                 
                 Entity targetGoblin = gameController.getGoblin2();
                 if (targetGoblin != null) {
-                    targetGoblin.getComponent(Goblin.class).jump();
-                    
                     if (isOnlineMode) {
-                        // 发送跳跃指令
+                        if (!isHost) {
+                            targetGoblin.getComponent(Goblin.class).jump();
+                        }
                         sendInputCommand(2, "JUMP", true);
+                    } else {
+                        targetGoblin.getComponent(Goblin.class).jump();
                     }
                 }
             }
         }, KeyCode.ENTER);
     }
     
-    // 新增：发送输入指令
     private void sendInputCommand(int playerId, String actionType, boolean isPressed) {
         if (networkManager != null) {
             String message = String.format("INPUT:%d:%s:%s", playerId, actionType, isPressed);
@@ -279,6 +284,24 @@ public class Main extends GameApplication {
     @Override
     protected void initPhysics() {
         physicsController.initPhysics();
+        
+        // 客戶端延遲禁用goblin1的物理碰撞
+        if (isOnlineMode && !isHost) {
+            FXGL.getGameTimer().runOnceAfter(() -> {
+                Entity goblin1 = gameController.getGoblin();
+                if (goblin1 != null) {
+                    PhysicsComponent physics = goblin1.getComponent(PhysicsComponent.class);
+                    if (physics != null) {
+                        // 設置為kinematic並禁用碰撞檢測
+                        physics.setBodyType(com.almasb.fxgl.physics.box2d.dynamics.BodyType.KINEMATIC);
+                        // 禁用碰撞檢測，避免殘影導致錯誤死亡判定
+                        if (goblin1.hasComponent(com.almasb.fxgl.entity.components.CollidableComponent.class)) {
+                            goblin1.getComponent(com.almasb.fxgl.entity.components.CollidableComponent.class).setValue(false);
+                        }
+                    }
+                }
+            }, javafx.util.Duration.seconds(0.5));
+        }
     }
     
     @Override
@@ -289,18 +312,28 @@ public class Main extends GameApplication {
             processNetworkMessages();
         }
 
-        // 只有在遊戲真正開始且未結束時才檢查遊戲結束條件
         if (gameController.isGameStarted() && !gameController.isGameOver()) {
-            if (gameController.checkGameOver()) {
-                showGameOver();
+            // 只有主機端或單機模式才檢查遊戲結束條件
+            if (!isOnlineMode || isHost) {
+                if (gameController.checkGameOver()) {
+                    showGameOver();
+                }
             }
         }
 
-        // 主机端定期同步状态给客户端
         if (isHost && isOnlineMode && networkManager != null) {
             syncAccumulator += tpf;
             if (syncAccumulator >= SYNC_INTERVAL) {
                 syncGameState();
+                syncAccumulator = 0;
+            }
+        }
+        
+        // 客戶端也需要同步自己控制的goblin2位置給主機端
+        if (!isHost && isOnlineMode && networkManager != null) {
+            syncAccumulator += tpf;
+            if (syncAccumulator >= SYNC_INTERVAL) {
+                syncClientPosition();
                 syncAccumulator = 0;
             }
         }
@@ -315,7 +348,6 @@ public class Main extends GameApplication {
         Entity goblin2 = gameController.getGoblin2();
         if (goblin == null || goblin2 == null) return;
         
-        // 包含遊戲狀態標誌
         String state = String.format("STATE:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%d:%d",
             goblin.getX(), goblin.getY(), 
             goblin.getComponent(PhysicsComponent.class).getVelocityX(),
@@ -324,31 +356,44 @@ public class Main extends GameApplication {
             goblin2.getComponent(PhysicsComponent.class).getVelocityX(),
             goblin2.getComponent(PhysicsComponent.class).getVelocityY(),
             gameController.getLavaHeight(),
-            gameController.isGameOver() ? 1 : 0,  // 遊戲結束狀態
-            gameController.getTimer().getElapsedSeconds()  // 計時器時間
+            gameController.isGameOver() ? 1 : 0,
+            gameController.getTimer().getElapsedSeconds()
         );
         
         networkManager.sendMessage(state);
     }
 
+    private void syncClientPosition() {
+        if (gameController == null || !gameController.isGameStarted()) return;
+        
+        Entity goblin2 = gameController.getGoblin2();
+        if (goblin2 == null) return;
+        
+        String clientPos = String.format("CLIENT_POS:%.2f:%.2f:%.2f:%.2f",
+            goblin2.getX(), goblin2.getY(),
+            goblin2.getComponent(PhysicsComponent.class).getVelocityX(),
+            goblin2.getComponent(PhysicsComponent.class).getVelocityY()
+        );
+        
+        networkManager.sendMessage(clientPos);
+    }
+
     private void processNetworkMessages() {
         String message;
         while ((message = networkManager.pollMessage()) != null) {
-            System.out.println("收到網絡消息: " + message);
-            
             if (message.startsWith("INPUT:")) {
                 handleInputCommand(message);
             } else if (message.startsWith("STATE:")) {
                 handleStateUpdate(message);
+            } else if (message.startsWith("CLIENT_POS:")) {
+                handleClientPosition(message);
             } else if ("START_GAME".equals(message)) {
-                // 這個消息在WaitingRoom中處理，這裡不需要處理
                 System.out.println("遊戲中收到START_GAME消息");
             } else if ("CLIENT_READY".equals(message)) {
                 if (isHost) {
                     System.out.println("主機收到客戶端就緒通知");
                 }
             } else if ("INTRO_COMPLETE".equals(message)) {
-                // 開場動畫完成，開始計時
                 if (gameController != null) {
                     gameController.startActualGame();
                 }
@@ -361,9 +406,32 @@ public class Main extends GameApplication {
         }
     }
     
-    // 新增：处理输入指令
+    private void handleClientPosition(String message) {
+        if (!isHost) return; // 只有主機處理客戶端位置
+        
+        String[] parts = message.split(":");
+        if (parts.length < 5) return;
+        
+        try {
+            Entity goblin2 = gameController.getGoblin2();
+            if (goblin2 != null) {
+                double newX = Double.parseDouble(parts[1]);
+                double newY = Double.parseDouble(parts[2]);
+                
+                goblin2.setPosition(newX, newY);
+                
+                PhysicsComponent physics = goblin2.getComponent(PhysicsComponent.class);
+                if (physics != null) {
+                    physics.setVelocityX(Double.parseDouble(parts[3]));
+                    physics.setVelocityY(Double.parseDouble(parts[4]));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("客戶端位置解析錯誤: " + message);
+        }
+    }
+    
     private void handleInputCommand(String message) {
-        // 格式: INPUT:player:actionType:isPressed
         String[] parts = message.split(":");
         if (parts.length < 4) return;
         
@@ -372,18 +440,13 @@ public class Main extends GameApplication {
             String actionType = parts[2];
             boolean isPressed = Boolean.parseBoolean(parts[3]);
             
-            // 只在主机端处理输入指令
             if (isHost) {
-                System.out.println("處理輸入指令: 玩家" + player + " 動作: " + actionType + " 按下: " + isPressed);
-                
-                // 获取对应玩家实体
                 Entity target = (player == 1) ? gameController.getGoblin() : gameController.getGoblin2();
                 if (target == null) return;
                 
                 Goblin goblinComponent = target.getComponent(Goblin.class);
                 if (goblinComponent == null) return;
                 
-                // 应用输入指令
                 switch (actionType) {
                     case "MOVE_RIGHT":
                         if (isPressed) goblinComponent.moveRight();
@@ -400,21 +463,19 @@ public class Main extends GameApplication {
             }
         } catch (Exception e) {
             System.err.println("輸入指令解析錯誤: " + message);
-            e.printStackTrace();
         }
     }
 
     private void handleStateUpdate(String message) {
-        // 只在客户端处理状态更新
-        if (isHost) return;
+        if (isHost) return; // 主機不處理狀態更新
         
-        // 格式: STATE:g1X:g1Y:g1VX:g1VY:g2X:g2Y:g2VX:g2VY:lavaHeight
         String[] parts = message.split(":");
-        if (parts.length < 10) return;
+        if (parts.length < 12) return;
         
         try {
-            // 更新哥布林1
             Entity goblin1 = gameController.getGoblin();
+            Entity goblin2 = gameController.getGoblin2();
+            
             double lavaHeight = Double.parseDouble(parts[9]);
             gameController.setLavaHeight(lavaHeight);
 
@@ -423,37 +484,29 @@ public class Main extends GameApplication {
                 showGameOver();
             }
             
-            // 同步計時器
             int elapsedSeconds = Integer.parseInt(parts[11]);
             if (gameController.getTimer() != null) {
                 gameController.getTimer().setElapsedSeconds(elapsedSeconds);
             }
 
+            // 客戶端只同步主機控制的goblin1，完全不同步自己控制的goblin2
             if (goblin1 != null) {
-                goblin1.setPosition(
-                    Double.parseDouble(parts[1]),
-                    Double.parseDouble(parts[2])
-                );
+                double newX = Double.parseDouble(parts[1]);
+                double newY = Double.parseDouble(parts[2]);
+                
+                // 直接設置位置，不通過物理引擎
+                goblin1.setPosition(newX, newY);
+                
                 PhysicsComponent physics = goblin1.getComponent(PhysicsComponent.class);
                 if (physics != null) {
+                    // 同步速度，確保物理狀態一致
                     physics.setVelocityX(Double.parseDouble(parts[3]));
                     physics.setVelocityY(Double.parseDouble(parts[4]));
                 }
             }
             
-            // 更新哥布林2
-            Entity goblin2 = gameController.getGoblin2();
-            if (goblin2 != null) {
-                goblin2.setPosition(
-                    Double.parseDouble(parts[5]),
-                    Double.parseDouble(parts[6])
-                );
-                PhysicsComponent physics = goblin2.getComponent(PhysicsComponent.class);
-                if (physics != null) {
-                    physics.setVelocityX(Double.parseDouble(parts[7]));
-                    physics.setVelocityY(Double.parseDouble(parts[8]));
-                }
-            }
+            // goblin2 完全不同步，只由客戶端本地控制
+            
         } catch (Exception e) {
             System.err.println("状态解析错误: " + message);
         }
@@ -470,12 +523,10 @@ public class Main extends GameApplication {
         
         gameController.setGameOver(true);
         
-        // 停止計時器
         if (gameController.getTimer() != null) {
             gameController.getTimer().stop();
         }
         
-        // 記錄最終存活時間
         int finalSurvivalTime = gameController.getTimer() != null ? 
             gameController.getTimer().getElapsedSeconds() : 0;
         
@@ -483,11 +534,9 @@ public class Main extends GameApplication {
             networkManager.sendMessage("GAME_OVER");
         }
 
-        // 創建遊戲結束畫面
         gameOver = new GameOver(finalSurvivalTime, isOnlineMode, new GameOver.GameOverCallback() {
             @Override
             public void onRestart() {
-                // 清理網絡連接
                 if (networkManager != null) {
                     networkManager.stop();
                     networkManager = null;
@@ -508,32 +557,22 @@ public class Main extends GameApplication {
         gameOver.show();
     }
     
-    /**
-     * 返回等待房間
-     */
     private void returnToWaitingRoom() {
         System.out.println("返回等待房間");
         
         if (networkManager != null) {
-            // 停止網絡管理器但不關閉Socket
             networkManager.stop(false);
             networkManager = null;
         }
         
-        // 標記Socket未被管理
         GameData.markSocketAsUnmanaged();
         
-        // 獲取主機信息
         String hostIP = GameData.getHostIP();
         boolean isHost = GameData.isHost();
         
-        // 返回等待室
         getSceneService().pushSubScene(new WaitingRoom(isHost, hostIP));
     }
     
-    /**
-     * 返回主選單
-     */
     private void returnToMainMenu() {
         System.out.println("返回主選單");
         
