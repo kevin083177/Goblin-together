@@ -30,8 +30,13 @@ public class Main extends GameApplication {
     private boolean isHost;
     private boolean isOnlineMode = false;
 
-    private static final double SYNC_INTERVAL = 0.1; // 減少到100ms，降低殘影
+    private static final double SYNC_INTERVAL = 0.05; // 提高到50ms，減少延遲
+    private static final double INPUT_SYNC_INTERVAL = 0.02; // 輸入指令20ms同步
     private double syncAccumulator = 0;
+    private double inputSyncAccumulator = 0;
+
+    // 輸入指令緩存
+    private java.util.Queue<String> pendingInputs = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -116,7 +121,6 @@ public class Main extends GameApplication {
             protected void onAction() {
                 if (!canAcceptInput()) return;
                 
-                // 客戶端不控制goblin1，只有主機或單機模式才執行
                 if (isOnlineMode && !isHost) return;
                 
                 Entity targetGoblin = gameController.getGoblin();
@@ -185,16 +189,17 @@ public class Main extends GameApplication {
             protected void onAction() {
                 if (!canAcceptInput()) return;
                 
-                Entity targetGoblin = gameController.getGoblin2();
-                if (targetGoblin != null) {
-                    if (isOnlineMode) {
-                        // 線上模式：客戶端執行本地動作，主機只發送輸入指令
-                        if (!isHost) {
-                            targetGoblin.getComponent(Goblin.class).moveRight();
-                        }
-                        sendInputCommand(2, "MOVE_RIGHT", true);
-                    } else {
-                        // 單機模式：直接執行
+                if (isOnlineMode) {
+                    // 客戶端立即執行本地預測
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null && !isHost) {
+                        targetGoblin.getComponent(Goblin.class).moveRight();
+                    }
+                    // 發送輸入指令
+                    sendInputCommand(2, "MOVE_RIGHT", true);
+                } else {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null) {
                         targetGoblin.getComponent(Goblin.class).moveRight();
                     }
                 }
@@ -204,14 +209,15 @@ public class Main extends GameApplication {
             protected void onActionEnd() {
                 if (!canAcceptInput()) return;
                 
-                Entity targetGoblin = gameController.getGoblin2();
-                if (targetGoblin != null) {
-                    if (isOnlineMode) {
-                        if (!isHost) {
-                            targetGoblin.getComponent(Goblin.class).stop();
-                        }
-                        sendInputCommand(2, "MOVE_RIGHT", false);
-                    } else {
+                if (isOnlineMode) {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null && !isHost) {
+                        targetGoblin.getComponent(Goblin.class).stop();
+                    }
+                    sendInputCommand(2, "MOVE_RIGHT", false);
+                } else {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null) {
                         targetGoblin.getComponent(Goblin.class).stop();
                     }
                 }
@@ -223,14 +229,15 @@ public class Main extends GameApplication {
             protected void onAction() {
                 if (!canAcceptInput()) return;
                 
-                Entity targetGoblin = gameController.getGoblin2();
-                if (targetGoblin != null) {
-                    if (isOnlineMode) {
-                        if (!isHost) {
-                            targetGoblin.getComponent(Goblin.class).moveLeft();
-                        }
-                        sendInputCommand(2, "MOVE_LEFT", true);
-                    } else {
+                if (isOnlineMode) {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null && !isHost) {
+                        targetGoblin.getComponent(Goblin.class).moveLeft();
+                    }
+                    sendInputCommand(2, "MOVE_LEFT", true);
+                } else {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null) {
                         targetGoblin.getComponent(Goblin.class).moveLeft();
                     }
                 }
@@ -240,14 +247,15 @@ public class Main extends GameApplication {
             protected void onActionEnd() {
                 if (!canAcceptInput()) return;
                 
-                Entity targetGoblin = gameController.getGoblin2();
-                if (targetGoblin != null) {
-                    if (isOnlineMode) {
-                        if (!isHost) {
-                            targetGoblin.getComponent(Goblin.class).stop();
-                        }
-                        sendInputCommand(2, "MOVE_LEFT", false);
-                    } else {
+                if (isOnlineMode) {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null && !isHost) {
+                        targetGoblin.getComponent(Goblin.class).stop();
+                    }
+                    sendInputCommand(2, "MOVE_LEFT", false);
+                } else {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null) {
                         targetGoblin.getComponent(Goblin.class).stop();
                     }
                 }
@@ -259,25 +267,39 @@ public class Main extends GameApplication {
             protected void onActionBegin() {
                 if (!canAcceptInput()) return;
                 
-                Entity targetGoblin = gameController.getGoblin2();
-                if (targetGoblin != null) {
-                    if (isOnlineMode) {
-                        if (!isHost) {
-                            targetGoblin.getComponent(Goblin.class).jump();
-                        }
-                        sendInputCommand(2, "JUMP", true);
-                    } else {
+                if (isOnlineMode) {
+                    // 客戶端立即執行跳躍預測，提供即時反饋
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null && !isHost) {
+                        // 先執行本地跳躍，給玩家即時反饋
+                        targetGoblin.getComponent(Goblin.class).jump();
+                    }
+                    // 緊急發送跳躍指令
+                    sendUrgentInputCommand(2, "JUMP", true);
+                } else {
+                    Entity targetGoblin = gameController.getGoblin2();
+                    if (targetGoblin != null) {
                         targetGoblin.getComponent(Goblin.class).jump();
                     }
                 }
             }
-        }, KeyCode.ENTER);
+        }, KeyCode.UP);
     }
     
     private void sendInputCommand(int playerId, String actionType, boolean isPressed) {
         if (networkManager != null) {
             String message = String.format("INPUT:%d:%s:%s", playerId, actionType, isPressed);
-            networkManager.sendMessage(message);
+            pendingInputs.offer(message);
+        }
+    }
+    
+    /**
+     * 緊急發送跳躍等關鍵輸入，立即發送不等待
+     */
+    private void sendUrgentInputCommand(int playerId, String actionType, boolean isPressed) {
+        if (networkManager != null) {
+            String message = String.format("URGENT:%d:%s:%s", playerId, actionType, isPressed);
+            networkManager.sendMessage(message); // 立即發送
         }
     }
 
@@ -285,22 +307,50 @@ public class Main extends GameApplication {
     protected void initPhysics() {
         physicsController.initPhysics();
         
-        // 客戶端延遲禁用goblin1的物理碰撞
+        // 客戶端立即禁用goblin1的所有物理計算
         if (isOnlineMode && !isHost) {
+            // 立即執行，不延遲
+            Entity goblin1 = gameController.getGoblin();
+            if (goblin1 != null) {
+                disableClientGoblin1Physics(goblin1);
+            }
+            
+            // 延遲再次確保（防止初始化順序問題）
             FXGL.getGameTimer().runOnceAfter(() -> {
-                Entity goblin1 = gameController.getGoblin();
-                if (goblin1 != null) {
-                    PhysicsComponent physics = goblin1.getComponent(PhysicsComponent.class);
-                    if (physics != null) {
-                        // 設置為kinematic並禁用碰撞檢測
-                        physics.setBodyType(com.almasb.fxgl.physics.box2d.dynamics.BodyType.KINEMATIC);
-                        // 禁用碰撞檢測，避免殘影導致錯誤死亡判定
-                        if (goblin1.hasComponent(com.almasb.fxgl.entity.components.CollidableComponent.class)) {
-                            goblin1.getComponent(com.almasb.fxgl.entity.components.CollidableComponent.class).setValue(false);
-                        }
-                    }
+                Entity goblin1Delayed = gameController.getGoblin();
+                if (goblin1Delayed != null) {
+                    disableClientGoblin1Physics(goblin1Delayed);
                 }
-            }, javafx.util.Duration.seconds(0.5));
+            }, javafx.util.Duration.seconds(0.1));
+        }
+    }
+    
+    /**
+     * 完全禁用客戶端goblin1的物理計算
+     */
+    private void disableClientGoblin1Physics(Entity goblin1) {
+        PhysicsComponent physics = goblin1.getComponent(PhysicsComponent.class);
+        if (physics != null) {
+            // 設為靜態物體，不受物理引擎影響
+            physics.setBodyType(com.almasb.fxgl.physics.box2d.dynamics.BodyType.KINEMATIC);
+            
+            // 禁用碰撞檢測
+            if (goblin1.hasComponent(com.almasb.fxgl.entity.components.CollidableComponent.class)) {
+                goblin1.getComponent(com.almasb.fxgl.entity.components.CollidableComponent.class).setValue(false);
+            }
+            
+            // 清零所有物理屬性
+            physics.setVelocityX(0);
+            physics.setVelocityY(0);
+            physics.getBody().setLinearDamping(0);
+            physics.getBody().setGravityScale(0);
+        }
+        
+        // 禁用Goblin組件的自主更新
+        Goblin goblinComponent = goblin1.getComponent(Goblin.class);
+        if (goblinComponent != null) {
+            // 標記為網絡控制模式
+            goblinComponent.setNetworkControlled(true);
         }
     }
     
@@ -321,6 +371,7 @@ public class Main extends GameApplication {
             }
         }
 
+        // 只有主機端發送遊戲狀態，確保權威性
         if (isHost && isOnlineMode && networkManager != null) {
             syncAccumulator += tpf;
             if (syncAccumulator >= SYNC_INTERVAL) {
@@ -329,16 +380,54 @@ public class Main extends GameApplication {
             }
         }
         
-        // 客戶端也需要同步自己控制的goblin2位置給主機端
+        // 客戶端發送輸入指令（高頻率）
         if (!isHost && isOnlineMode && networkManager != null) {
-            syncAccumulator += tpf;
-            if (syncAccumulator >= SYNC_INTERVAL) {
-                syncClientPosition();
-                syncAccumulator = 0;
+            inputSyncAccumulator += tpf;
+            if (inputSyncAccumulator >= INPUT_SYNC_INTERVAL) {
+                sendPendingInputs();
+                inputSyncAccumulator = 0;
             }
         }
         
+        // 客戶端強制確保goblin1位置不被本地計算影響
+        if (!isHost && isOnlineMode) {
+            enforceClientGoblin1Position();
+        }
+        
         gameController.updateViewport();
+    }
+    
+    /**
+     * 發送待處理的輸入指令
+     */
+    private void sendPendingInputs() {
+        while (!pendingInputs.isEmpty()) {
+            String input = pendingInputs.poll();
+            if (input != null) {
+                networkManager.sendMessage(input);
+            }
+        }
+    }
+    
+    /**
+     * 客戶端強制確保goblin1位置不被任何本地計算影響
+     */
+    private void enforceClientGoblin1Position() {
+        Entity goblin1 = gameController.getGoblin();
+        if (goblin1 != null) {
+            PhysicsComponent physics = goblin1.getComponent(PhysicsComponent.class);
+            if (physics != null) {
+                // 強制清零任何可能的本地速度計算
+                if (Math.abs(physics.getVelocityX()) > 0.1 || Math.abs(physics.getVelocityY()) > 0.1) {
+                    // 如果檢測到非網絡同步的速度變化，立即清零
+                    physics.setVelocityX(0);
+                    physics.setVelocityY(0);
+                }
+                
+                // 確保重力影響為0
+                physics.getBody().setGravityScale(0);
+            }
+        }
     }
 
     private void syncGameState() {
@@ -348,7 +437,14 @@ public class Main extends GameApplication {
         Entity goblin2 = gameController.getGoblin2();
         if (goblin == null || goblin2 == null) return;
         
-        String state = String.format("STATE:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%d:%d",
+        // 獲取物理狀態信息
+        Goblin goblin1Component = goblin.getComponent(Goblin.class);
+        Goblin goblin2Component = goblin2.getComponent(Goblin.class);
+        
+        int goblin1OnGround = (goblin1Component != null && goblin1Component.isOnGround()) ? 1 : 0;
+        int goblin2OnGround = (goblin2Component != null && goblin2Component.isOnGround()) ? 1 : 0;
+        
+        String state = String.format("STATE:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%d:%d:%d:%d",
             goblin.getX(), goblin.getY(), 
             goblin.getComponent(PhysicsComponent.class).getVelocityX(),
             goblin.getComponent(PhysicsComponent.class).getVelocityY(),
@@ -357,36 +453,21 @@ public class Main extends GameApplication {
             goblin2.getComponent(PhysicsComponent.class).getVelocityY(),
             gameController.getLavaHeight(),
             gameController.isGameOver() ? 1 : 0,
-            gameController.getTimer().getElapsedSeconds()
+            gameController.getTimer().getElapsedSeconds(),
+            goblin1OnGround,
+            goblin2OnGround
         );
         
         networkManager.sendMessage(state);
     }
 
-    private void syncClientPosition() {
-        if (gameController == null || !gameController.isGameStarted()) return;
-        
-        Entity goblin2 = gameController.getGoblin2();
-        if (goblin2 == null) return;
-        
-        String clientPos = String.format("CLIENT_POS:%.2f:%.2f:%.2f:%.2f",
-            goblin2.getX(), goblin2.getY(),
-            goblin2.getComponent(PhysicsComponent.class).getVelocityX(),
-            goblin2.getComponent(PhysicsComponent.class).getVelocityY()
-        );
-        
-        networkManager.sendMessage(clientPos);
-    }
-
     private void processNetworkMessages() {
         String message;
         while ((message = networkManager.pollMessage()) != null) {
-            if (message.startsWith("INPUT:")) {
+            if (message.startsWith("INPUT:") || message.startsWith("URGENT:")) {
                 handleInputCommand(message);
             } else if (message.startsWith("STATE:")) {
                 handleStateUpdate(message);
-            } else if (message.startsWith("CLIENT_POS:")) {
-                handleClientPosition(message);
             } else if ("START_GAME".equals(message)) {
                 System.out.println("遊戲中收到START_GAME消息");
             } else if ("CLIENT_READY".equals(message)) {
@@ -395,7 +476,10 @@ public class Main extends GameApplication {
                 }
             } else if ("INTRO_COMPLETE".equals(message)) {
                 if (gameController != null) {
-                    gameController.startActualGame();
+                    // 客戶端收到主機的INTRO_COMPLETE消息
+                    if (!isHost) {
+                        gameController.onReceiveIntroComplete();
+                    }
                 }
             } else if ("GAME_OVER".equals(message)) {
                 showGameOver();
@@ -406,32 +490,11 @@ public class Main extends GameApplication {
         }
     }
     
-    private void handleClientPosition(String message) {
-        if (!isHost) return; // 只有主機處理客戶端位置
-        
-        String[] parts = message.split(":");
-        if (parts.length < 5) return;
-        
-        try {
-            Entity goblin2 = gameController.getGoblin2();
-            if (goblin2 != null) {
-                double newX = Double.parseDouble(parts[1]);
-                double newY = Double.parseDouble(parts[2]);
-                
-                goblin2.setPosition(newX, newY);
-                
-                PhysicsComponent physics = goblin2.getComponent(PhysicsComponent.class);
-                if (physics != null) {
-                    physics.setVelocityX(Double.parseDouble(parts[3]));
-                    physics.setVelocityY(Double.parseDouble(parts[4]));
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("客戶端位置解析錯誤: " + message);
-        }
-    }
-    
     private void handleInputCommand(String message) {
+        // 只有主機處理輸入指令
+        if (!isHost) return;
+        
+        boolean isUrgent = message.startsWith("URGENT:");
         String[] parts = message.split(":");
         if (parts.length < 4) return;
         
@@ -440,26 +503,39 @@ public class Main extends GameApplication {
             String actionType = parts[2];
             boolean isPressed = Boolean.parseBoolean(parts[3]);
             
-            if (isHost) {
-                Entity target = (player == 1) ? gameController.getGoblin() : gameController.getGoblin2();
-                if (target == null) return;
-                
-                Goblin goblinComponent = target.getComponent(Goblin.class);
-                if (goblinComponent == null) return;
-                
-                switch (actionType) {
-                    case "MOVE_RIGHT":
-                        if (isPressed) goblinComponent.moveRight();
-                        else goblinComponent.stop();
-                        break;
-                    case "MOVE_LEFT":
-                        if (isPressed) goblinComponent.moveLeft();
-                        else goblinComponent.stop();
-                        break;
-                    case "JUMP":
-                        if (isPressed) goblinComponent.jump();
-                        break;
-                }
+            Entity target = (player == 1) ? gameController.getGoblin() : gameController.getGoblin2();
+            if (target == null) return;
+            
+            Goblin goblinComponent = target.getComponent(Goblin.class);
+            if (goblinComponent == null) return;
+            
+            switch (actionType) {
+                case "MOVE_RIGHT":
+                    if (isPressed) goblinComponent.moveRight();
+                    else goblinComponent.stop();
+                    break;
+                case "MOVE_LEFT":
+                    if (isPressed) goblinComponent.moveLeft();
+                    else goblinComponent.stop();
+                    break;
+                case "JUMP":
+                    if (isPressed) {
+                        // 強制重置跳躍狀態，確保跳躍能執行
+                        if (isUrgent) {
+                            goblinComponent.forceResetJumpState();
+                        }
+                        goblinComponent.jump();
+                        
+                        // 緊急跳躍立即同步狀態
+                        if (isUrgent) {
+                            Platform.runLater(() -> {
+                                FXGL.getGameTimer().runOnceAfter(() -> {
+                                    syncGameState();
+                                }, javafx.util.Duration.millis(10));
+                            });
+                        }
+                    }
+                    break;
             }
         } catch (Exception e) {
             System.err.println("輸入指令解析錯誤: " + message);
@@ -467,7 +543,8 @@ public class Main extends GameApplication {
     }
 
     private void handleStateUpdate(String message) {
-        if (isHost) return; // 主機不處理狀態更新
+        // 只有客戶端處理狀態更新
+        if (isHost) return;
         
         String[] parts = message.split(":");
         if (parts.length < 12) return;
@@ -489,27 +566,51 @@ public class Main extends GameApplication {
                 gameController.getTimer().setElapsedSeconds(elapsedSeconds);
             }
 
-            // 客戶端只同步主機控制的goblin1，完全不同步自己控制的goblin2
+            // 強制設置goblin1位置為主機權威位置
             if (goblin1 != null) {
-                double newX = Double.parseDouble(parts[1]);
-                double newY = Double.parseDouble(parts[2]);
+                double hostX1 = Double.parseDouble(parts[1]);
+                double hostY1 = Double.parseDouble(parts[2]);
+                double hostVX1 = Double.parseDouble(parts[3]);
+                double hostVY1 = Double.parseDouble(parts[4]);
                 
-                // 直接設置位置，不通過物理引擎
-                goblin1.setPosition(newX, newY);
-                
-                PhysicsComponent physics = goblin1.getComponent(PhysicsComponent.class);
-                if (physics != null) {
-                    // 同步速度，確保物理狀態一致
-                    physics.setVelocityX(Double.parseDouble(parts[3]));
-                    physics.setVelocityY(Double.parseDouble(parts[4]));
-                }
+                // 強制設置位置，無條件接受主機位置
+                forceSetEntityPosition(goblin1, hostX1, hostY1, hostVX1, hostVY1);
             }
             
-            // goblin2 完全不同步，只由客戶端本地控制
+            // 同樣強制設置goblin2位置
+            if (goblin2 != null) {
+                double hostX2 = Double.parseDouble(parts[5]);
+                double hostY2 = Double.parseDouble(parts[6]);
+                double hostVX2 = Double.parseDouble(parts[7]);
+                double hostVY2 = Double.parseDouble(parts[8]);
+                      
+                forceSetEntityPosition(goblin2, hostX2, hostY2, hostVX2, hostVY2);
+            }
             
         } catch (Exception e) {
             System.err.println("状态解析错误: " + message);
         }
+    }
+    
+    /**
+     * 強制設置實體位置，忽略所有本地物理計算
+     */
+    private void forceSetEntityPosition(Entity entity, double x, double y, double vx, double vy) {
+        // 直接設置位置
+        entity.setX(x);
+        entity.setY(y);
+        
+        // 強制設置物理組件速度（如果存在）
+        PhysicsComponent physics = entity.getComponent(PhysicsComponent.class);
+        if (physics != null) {
+            // 強制覆蓋物理引擎計算的位置
+            physics.overwritePosition(new javafx.geometry.Point2D(x, y));
+            physics.setVelocityX(vx);
+            physics.setVelocityY(vy);
+        }
+        
+        // 確保視覺組件也更新到正確位置
+        entity.getTransformComponent().setPosition(x, y);
     }
     
     public void onDestroy() {

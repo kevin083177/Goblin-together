@@ -33,8 +33,11 @@ public class Goblin extends Component {
     private EntityType otherPlayerType;
     
     private boolean onIce = false;
-    private double iceAcceleration = 0.3; // 冰上的加速度
-    private double iceDeceleration = 0.1; // 冰上的减速度
+    private double iceAcceleration = 0.3;
+    private double iceDeceleration = 0.1;
+    
+    // 新增：網絡控制模式標誌
+    private boolean isNetworkControlled = false;
 
     public Goblin(int playerId) {
         this.playerId = playerId;
@@ -57,13 +60,42 @@ public class Goblin extends Component {
     
     @Override
     public void onUpdate(double tpf) {
+        // 如果是網絡控制模式，跳過所有本地邏輯
+        if (isNetworkControlled) {
+            return;
+        }
+        
         keepWithinScreenBounds();
         updateStandingState();
         
         canJump = (onGround || isStandingOnPlayer) && !isJumping;
     }
     
+    /**
+     * 設置網絡控制模式
+     * 在此模式下，角色位置完全由網絡同步控制，不執行任何本地邏輯
+     */
+    public void setNetworkControlled(boolean networkControlled) {
+        this.isNetworkControlled = networkControlled;
+        
+        if (networkControlled) {
+            // 禁用所有本地狀態
+            canJump = false;
+            isJumping = false;
+            onGround = false;
+            isStandingOnPlayer = false;
+            standingOnPlayer = null;
+            onIce = false;
+        }
+    }
+    
+    public boolean isNetworkControlled() {
+        return isNetworkControlled;
+    }
+    
     public void setOnGround(boolean onGround) {
+        if (isNetworkControlled) return;
+        
         this.onGround = onGround;
         
         if (onGround) {
@@ -78,6 +110,8 @@ public class Goblin extends Component {
     }
     
     public void moveRight() {
+        if (isNetworkControlled) return;
+        
         if (onIce) {
             physics.setVelocityX(physics.getVelocityX() + MOVE_SPEED * iceAcceleration);
         } else {
@@ -86,6 +120,8 @@ public class Goblin extends Component {
     }
     
     public void moveLeft() {
+        if (isNetworkControlled) return;
+        
         if (onIce) {
             physics.setVelocityX(physics.getVelocityX() - MOVE_SPEED * iceAcceleration);
         } else {
@@ -94,6 +130,8 @@ public class Goblin extends Component {
     }
     
     public void jump() {
+        if (isNetworkControlled) return;
+        
         if (canJump) {
             double jumpForce = JUMP_HEIGHT;
             
@@ -111,7 +149,9 @@ public class Goblin extends Component {
     }
     
     public void onGroundCollision() {
-        setOnGround(true); // 碰撞到地面
+        if (isNetworkControlled) return;
+        
+        setOnGround(true);
         
         if (isJumping && jumpTimer.elapsed(jumpTimeout)) {
             canJump = true;
@@ -120,6 +160,8 @@ public class Goblin extends Component {
     }
     
     public void stop() {
+        if (isNetworkControlled) return;
+        
         if (onIce) {
             double currentVX = physics.getVelocityX();
             double newVX = currentVX * (1 - iceDeceleration);
@@ -133,6 +175,8 @@ public class Goblin extends Component {
     }
     
     private void updateStandingState() {
+        if (isNetworkControlled) return;
+        
         Entity otherPlayer = getOtherPlayer();
         if (otherPlayer == null) return;
         
@@ -173,6 +217,8 @@ public class Goblin extends Component {
     }
     
     private void keepWithinScreenBounds() {
+        if (isNetworkControlled) return;
+        
         double currentX = entity.getX();
         double currentY = entity.getY();
         double entityWidth = entity.getWidth();
@@ -307,16 +353,32 @@ public class Goblin extends Component {
     }
     
     public void resetJump() {
+        if (isNetworkControlled) return;
+        
         canJump = true;
         isJumping = false;
         jumpTimer.capture();
     }
+    
+    /**
+     * 強制重置跳躍狀態，用於網絡同步中確保跳躍能執行
+     */
+    public void forceResetJumpState() {
+        canJump = true;
+        isJumping = false;
+        onGround = true; // 強制設置為在地面上
+        jumpTimer.capture();
+    }
 
     public void setOnIce(boolean onIce) {
+        if (isNetworkControlled) return;
+        
         this.onIce = onIce;
     }
 
     public void setPlatformDisappeared() {
+        if (isNetworkControlled) return;
+        
         setOnGround(false);
         physics.setVelocityY(0.1);
     }
